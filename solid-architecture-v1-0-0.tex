@@ -24,12 +24,21 @@ Solid server -- Proposed architecture v1.0.0
 Ruben Verborgh
 
 \vspace{2em}
-}
 
 \begin{tikzpicture}
-\begin{umlpackage}{HTTP}
 
+\begin{umlpackage}{HTTP}
+  \umlclass{HttpServer}{}{
+    listen(port : int) : void\\
+    handle(HttpRequest, HttpResponse) : void\\
+  }
+  \umlinterface[right=1 of HttpServer]{HttpHandler}{}{
+    canHandle(HttpRequest) : Promise<boolean>\\
+    handle(HttpRequest, HttpResponse) : void\\
+  }
+  \umlaggreg[mult=*]{HttpServer}{HttpHandler}
 \end{umlpackage}
+
 \end{tikzpicture}
 
 \end{document}
