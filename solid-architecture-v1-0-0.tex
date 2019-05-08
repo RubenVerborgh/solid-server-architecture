@@ -78,20 +78,21 @@
   \umlinherit{Patch}{Representation}
 
 
-  \begin{umlpackage}[x=5,y=-3]{Operations}
+  \begin{umlpackage}[x=7.5,y=-3.5]{Operations}
     \umlclass[]{OperationFactory}{}{
       + OperationFactory(ResourceStore)\\
+      + createOperation(method : string, target : ResourceIdentifier, \ldots) : Operation\\
     }
     \umlaggreg[mult=1,geometry=|-]{LdpHandler}{OperationFactory}
 
-    \umlinterface[below=0.5 of OperationFactory]{Operation}{
+    \umlinterface[below=1 of OperationFactory]{Operation}{
       + target : ResourceIdentifier\\
       + body : Representation\\
       + requiredPermissions : PermissionSet\\
     }{
       + execute() : Promise<ResponseDescription>\\
     }
-    \umldep{OperationFactory}{Operation}
+    \umldep[arg=creates,pos=0.5]{OperationFactory}{Operation}
 
     \umlsimpleclass[right=1 of Operation.north east,anchor=south west]{GetOperation}
     \umlsimpleclass[below=.25 of GetOperation.south west,anchor=north west]{PostOperation}
@@ -127,12 +128,12 @@
 \end{umlpackage}
 
 \begin{umlpackage}{Authorization}
-  \umlinterface[below=5 of CredentialsExtractor.south east,anchor=north east]{Authorizer}{}{
+  \umlinterface[below=4.5 of CredentialsExtractor.south east,anchor=north east]{Authorizer}{}{
     + hasPermissions(Credentials,
                      ResourceIdentifier,\\*
                      PermissionSet) : Promise<boolean>\\
   }
-  \umlaggreg[mult=1,geometry=|-|,weight=0.6]{LdpHandler}{Authorizer}
+  \umlaggreg[mult=1,geometry=|-,weight=0.6]{LdpHandler}{Authorizer}
 
   \umlsimpleclass[below=1 of Authorizer]{AclBasedAuthorizer}
   \umlimpl{AclBasedAuthorizer}{Authorizer}
