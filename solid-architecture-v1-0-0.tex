@@ -65,14 +65,14 @@
   \umlaggreg[mult=1]{LdpHandler}{TargetExtractor}
 
   \umlsimpleclass[right=2 of TargetExtractor]{ResourceIdentifier}
-  \umldep[arg=creates]{TargetExtractor}{ResourceIdentifier}
+  \umldep[arg=creates,pos=0.5]{TargetExtractor}{ResourceIdentifier}
 
 
   \umlsimpleclass[below=0.5 of TargetExtractor.south west,anchor=north west]{BodyParser}
   \umlaggreg[mult=*]{LdpHandler}{BodyParser}
 
-  \umlsimpleclass[right=2 of BodyParser]{Representation}
-  \umldep[arg=creates]{BodyParser}{Representation}
+  \umlsimpleclass[below=0.5 of ResourceIdentifier.south west,anchor=north west]{Representation}
+  \umldep[arg=creates,pos=0.5]{BodyParser}{Representation}
 
   \umlsimpleclass[right=1 of Representation]{Patch}
   \umlinherit{Patch}{Representation}
