@@ -46,37 +46,58 @@ Ruben Verborgh
   }
   \umlimpl{LdpHandler}{HttpHandler}
 
+
   \umlsimpleclass[right=2 of LdpHandler.north east]{TargetExtractor}
   \umlaggreg[mult=1]{LdpHandler}{TargetExtractor}
+
+  \umlsimpleclass[right=2 of TargetExtractor]{ResourceIdentifier}
+  \umldep[arg=creates]{TargetExtractor}{ResourceIdentifier}
+
 
   \umlsimpleclass[below=0.5 of TargetExtractor.south west,anchor=north west]{BodyParser}
   \umlaggreg[mult=*]{LdpHandler}{BodyParser}
 
-  \umlsimpleclass[right=1 of BodyParser]{Patch}
-  \umldep{BodyParser}{Patch}
+  \umlsimpleclass[right=2 of BodyParser]{Representation}
+  \umldep[arg=creates]{BodyParser}{Representation}
 
-  \umlsimpleclass[below=0.5 of BodyParser.south west,anchor=north west]{OperationFactory}
-  \umlaggreg[mult=1]{LdpHandler}{OperationFactory}
+  \umlsimpleclass[right=1 of Representation]{Patch}
+  \umlinherit{Patch}{Representation}
 
-  \umlinterface[below=0.5 of OperationFactory]{Operation}{
-    + target : ResourceIdentifier\\
-    + body : Representation\\
-    + requiredPermissions : PermissionSet\\
-  }{
-    + execute() : Promise<ResponseDescription>\\
-  }
-  \umldep{OperationFactory}{Operation}
+
+  \begin{umlpackage}[x=5,y=-3]{Operations}
+    \umlsimpleclass[]{OperationFactory}
+    \umlaggreg[mult=1,geometry=|-]{LdpHandler}{OperationFactory}
+
+    \umlinterface[below=0.5 of OperationFactory]{Operation}{
+      + target : ResourceIdentifier\\
+      + body : Representation\\
+      + requiredPermissions : PermissionSet\\
+    }{
+      + execute() : Promise<ResponseDescription>\\
+    }
+    \umldep{OperationFactory}{Operation}
+
+    \umlsimpleclass[right=1 of Operation.north east,anchor=south west]{GetOperation}
+    \umlsimpleclass[below=.25 of GetOperation.south west,anchor=north west]{PostOperation}
+    \umlsimpleclass[below=.25 of PostOperation.south west,anchor=north west]{PutOperation}
+    \umlsimpleclass[below=.25 of PutOperation.south west,anchor=north west]{PatchOperation}
+    \umlimpl{GetOperation}{Operation}
+    \umlimpl{PostOperation}{Operation}
+    \umlimpl{PutOperation}{Operation}
+    \umlimpl{PatchOperation}{Operation}
+
+  \end{umlpackage}
 \end{umlpackage}
 
-\begin{umlpackage}[y=-15]{Storage}
-  \umlinterface[]{ResourceStore}{}{
+\begin{umlpackage}{Storage}
+  \umlinterface[below=3 of Operation]{ResourceStore}{}{
     + getRepresentation(ResourceIdentifier): Promise<Representation>\\
     + addResource(container: ResourceIdentifier, Representation): Promise<ResourceIdentifier>\\
     + setRepresentation(ResourceIdentifier, Representation): Promise<void>\\
     + deleteResource(ResourceIdentifier): Promise<void>\\
     + modifyResource(ResourceIdentifier, Patch): Promise<void>\\
   }
-  \umlaggreg[mult=1]{LdpHandler}{ResourceStore}
+  \umlaggreg[mult=1]{Operation}{ResourceStore}
 \end{umlpackage}
 
 \end{tikzpicture}
