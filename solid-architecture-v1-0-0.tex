@@ -33,7 +33,9 @@ Ruben Verborgh
     + canHandle(HttpRequest) : Promise<boolean>\\
     + handle(HttpRequest, HttpResponse) : void\\
   }
+
   \umlclass[right=1 of HttpHandler]{HttpServer}{}{
+    + HttpServer(Array<HttpHandler>)\\
     + listen(port : int) : void\\
     + handle(HttpRequest, HttpResponse) : void\\
   }
@@ -42,6 +44,7 @@ Ruben Verborgh
 
 \begin{umlpackage}[y=-5]{LDP}
   \umlclass{LdpHandler}{}{
+    + LdpHandler(OperationFactory)\\
     + handle(HttpRequest, HttpResponse) : void\\
   }
   \umlimpl{LdpHandler}{HttpHandler}
@@ -65,7 +68,9 @@ Ruben Verborgh
 
 
   \begin{umlpackage}[x=5,y=-3]{Operations}
-    \umlsimpleclass[]{OperationFactory}
+    \umlclass[]{OperationFactory}{}{
+      + OperationFactory(ResourceStore)\\
+    }
     \umlaggreg[mult=1,geometry=|-]{LdpHandler}{OperationFactory}
 
     \umlinterface[below=0.5 of OperationFactory]{Operation}{
