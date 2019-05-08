@@ -14,17 +14,28 @@
 \usepackage{./tikz-uml}
 \usetikzlibrary{positioning}
 
+% Headings
+\makeatletter
+\def\@maketitle{%
+  {\LARGE\bf\@title\par}
+  \vskip .5em
+  {\large\@author\ -- \@date\par}
+  \vskip 2em
+}
+\makeatother
+
+% Document metadata
+\title{
+  Solid server -- Proposed architecture v1.0.0
+  \it (status: work in progress)
+}
+\author{Ruben Verborgh}
+
 \begin{document}
 
-{
-\Large
-Solid server -- Proposed architecture v1.0.0
-(status: work in progress)
+\maketitle
 
-\large
-Ruben Verborgh
-
-\vspace{2em}
+\section*{LDP and Access Control}
 
 \begin{tikzpicture}
 
