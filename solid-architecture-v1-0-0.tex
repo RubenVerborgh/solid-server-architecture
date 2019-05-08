@@ -2,7 +2,7 @@
 \usepackage[utf8]{inputenc}
 
 % Page setup
-\usepackage[a3paper,margin=2cm]{geometry}
+\usepackage[a3paper,landscape,margin=2cm]{geometry}
 
 % Typography
 \usepackage[scaled]{berasans}
@@ -52,11 +52,14 @@ Ruben Verborgh
   \umlsimpleclass[below=0.5 of TargetExtractor.south west,anchor=north west]{BodyParser}
   \umlaggreg[mult=*]{LdpHandler}{BodyParser}
 
+  \umlsimpleclass[right=1 of BodyParser]{Patch}
+  \umldep{BodyParser}{Patch}
+
   \umlsimpleclass[below=0.5 of BodyParser.south west,anchor=north west]{OperationFactory}
   \umlaggreg[mult=1]{LdpHandler}{OperationFactory}
 
   \umlinterface[below=0.5 of OperationFactory]{Operation}{
-    + target : Path\\
+    + target : ResourceIdentifier\\
     + body : Representation\\
     + requiredPermissions : PermissionSet\\
   }{
@@ -65,6 +68,16 @@ Ruben Verborgh
   \umldep{OperationFactory}{Operation}
 \end{umlpackage}
 
+\begin{umlpackage}[y=-15]{Storage}
+  \umlinterface[]{ResourceStore}{}{
+    + getRepresentation(ResourceIdentifier): Promise<Representation>\\
+    + addResource(container: ResourceIdentifier, Representation): Promise<ResourceIdentifier>\\
+    + setRepresentation(ResourceIdentifier, Representation): Promise<void>\\
+    + deleteResource(ResourceIdentifier): Promise<void>\\
+    + modifyResource(ResourceIdentifier, Patch): Promise<void>\\
+  }
+  \umlaggreg[mult=1]{LdpHandler}{ResourceStore}
+\end{umlpackage}
 
 \end{tikzpicture}
 
