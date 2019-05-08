@@ -121,15 +121,18 @@
     + extractCredentials(HttpRequest) : Promise<Credentials>\\
   }
   \umlaggreg[mult=1]{LdpHandler}{CredentialsExtractor}
+
+  \umlsimpleclass[below=1 of CredentialsExtractor]{Credentials}
+  \umldep[arg=creates,pos=0.5]{CredentialsExtractor}{Credentials}
 \end{umlpackage}
 
 \begin{umlpackage}{Authorization}
-  \umlinterface[below=2 of CredentialsExtractor.south east,anchor=north east]{Authorizer}{}{
+  \umlinterface[below=5 of CredentialsExtractor.south east,anchor=north east]{Authorizer}{}{
     + hasPermissions(Credentials,
                      ResourceIdentifier,\\*
                      PermissionSet) : Promise<boolean>\\
   }
-  \umlaggreg[mult=1,geometry=|-|]{LdpHandler}{Authorizer}
+  \umlaggreg[mult=1,geometry=|-|,weight=0.6]{LdpHandler}{Authorizer}
 
   \umlsimpleclass[below=1 of Authorizer]{AclBasedAuthorizer}
   \umlimpl{AclBasedAuthorizer}{Authorizer}
