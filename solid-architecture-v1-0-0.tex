@@ -1,0 +1,35 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+
+% Page setup
+\usepackage[a3paper,margin=2cm]{geometry}
+
+% Typography
+\usepackage[scaled]{berasans}
+\renewcommand*\familydefault{\sfdefault}
+\usepackage[T1]{fontenc}
+\parindent 0pt
+
+% TikZ
+\usepackage{./tikz-uml}
+\usetikzlibrary{positioning}
+
+\begin{document}
+
+{
+\Large
+Solid server -- Proposed architecture v1.0.0
+
+\large
+Ruben Verborgh
+
+\vspace{2em}
+}
+
+\begin{tikzpicture}
+\begin{umlpackage}{HTTP}
+
+\end{umlpackage}
+\end{tikzpicture}
+
+\end{document}
