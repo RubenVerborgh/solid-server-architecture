@@ -28,16 +28,42 @@ Ruben Verborgh
 \begin{tikzpicture}
 
 \begin{umlpackage}{HTTP}
-  \umlclass{HttpServer}{}{
-    listen(port : int) : void\\
-    handle(HttpRequest, HttpResponse) : void\\
+  \umlinterface[]{HttpHandler}{}{
+    + canHandle(HttpRequest) : Promise<boolean>\\
+    + handle(HttpRequest, HttpResponse) : void\\
   }
-  \umlinterface[right=1 of HttpServer]{HttpHandler}{}{
-    canHandle(HttpRequest) : Promise<boolean>\\
-    handle(HttpRequest, HttpResponse) : void\\
+  \umlclass[right=1 of HttpHandler]{HttpServer}{}{
+    + listen(port : int) : void\\
+    + handle(HttpRequest, HttpResponse) : void\\
   }
   \umlaggreg[mult=*]{HttpServer}{HttpHandler}
 \end{umlpackage}
+
+\begin{umlpackage}[y=-5]{LDP}
+  \umlclass{LdpHandler}{}{
+    + handle(HttpRequest, HttpResponse) : void\\
+  }
+  \umlimpl{LdpHandler}{HttpHandler}
+
+  \umlsimpleclass[right=2 of LdpHandler.north east]{TargetExtractor}
+  \umlaggreg[mult=1]{LdpHandler}{TargetExtractor}
+
+  \umlsimpleclass[below=0.5 of TargetExtractor.south west,anchor=north west]{BodyParser}
+  \umlaggreg[mult=*]{LdpHandler}{BodyParser}
+
+  \umlsimpleclass[below=0.5 of BodyParser.south west,anchor=north west]{OperationFactory}
+  \umlaggreg[mult=1]{LdpHandler}{OperationFactory}
+
+  \umlinterface[below=0.5 of OperationFactory]{Operation}{
+    + target : Path\\
+    + body : Representation\\
+    + requiredPermissions : PermissionSet\\
+  }{
+    + execute() : Promise<ResponseDescription>\\
+  }
+  \umldep{OperationFactory}{Operation}
+\end{umlpackage}
+
 
 \end{tikzpicture}
 
