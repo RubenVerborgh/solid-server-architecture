@@ -107,18 +107,18 @@
 
 \begin{umlpackage}{Storage}
   \umlinterface[below=3 of Operation]{ResourceStore}{}{
-    + getRepresentation(ResourceIdentifier): Promise<Representation>\\
-    + addResource(container: ResourceIdentifier, Representation): Promise<ResourceIdentifier>\\
-    + setRepresentation(ResourceIdentifier, Representation): Promise<void>\\
-    + deleteResource(ResourceIdentifier): Promise<void>\\
-    + modifyResource(ResourceIdentifier, Patch): Promise<void>\\
+    + getRepresentation(ResourceIdentifier) : Promise<Representation>\\
+    + addResource(container : ResourceIdentifier, Representation) : Promise<ResourceIdentifier>\\
+    + setRepresentation(ResourceIdentifier, Representation) : Promise<void>\\
+    + deleteResource(ResourceIdentifier) : Promise<void>\\
+    + modifyResource(ResourceIdentifier, Patch) : Promise<void>\\
   }
   \umlaggreg[mult=1]{Operation}{ResourceStore}
 \end{umlpackage}
 
 \begin{umlpackage}{Authentication}
   \umlinterface[left=2 of LdpHandler.west]{CredentialsExtractor}{}{
-    + extractCredentials(HttpRequest): Promise<Credentials>\\
+    + extractCredentials(HttpRequest) : Promise<Credentials>\\
   }
   \umlaggreg[mult=1]{LdpHandler}{CredentialsExtractor}
 \end{umlpackage}
