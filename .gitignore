@@ -1,9 +1,11 @@
 *.aux
 *.bbl
 *.blg
+*.dvi
 *.fdb*
 *.fls
 *.log
 *.out
 *.pdf
+*.svg
 *.synctex*
