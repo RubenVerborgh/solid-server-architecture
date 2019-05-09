@@ -53,7 +53,7 @@
   \umlaggreg[mult=*]{HttpServer}{HttpHandler}
 \end{umlpackage}
 
-\begin{umlpackage}[y=-5]{LDP}
+\begin{umlpackage}[y=-4.5]{LDP}
   \umlclass{LdpHandler}{}{
     + LdpHandler(OperationFactory)\\
   }
@@ -67,33 +67,42 @@
   \umldep[arg=creates,pos=0.5]{TargetExtractor}{ResourceIdentifier}
 
 
-  \umlsimpleclass[below=0.5 of TargetExtractor.south west,anchor=north west]{BodyParser}
+  \umlsimpleclass[below=0.25 of TargetExtractor.south west,anchor=north west]{BodyParser}
   \umlaggreg[mult=*]{LdpHandler}{BodyParser}
 
-  \umlsimpleclass[below=0.5 of ResourceIdentifier.south west,anchor=north west]{Representation}
+  \umlsimpleclass[below=0.25 of ResourceIdentifier.south west,anchor=north west]{Representation}
   \umldep[arg=creates,pos=0.5]{BodyParser}{Representation}
 
   \umlsimpleclass[right=1 of Representation]{Patch}
   \umlinherit{Patch}{Representation}
 
 
-  \begin{umlpackage}[x=7.5,y=-3.5]{Operations}
+  \umlsimpleclass[below=0.25 of BodyParser.south west,anchor=north west]{PreferenceParser}
+  \umlaggreg[mult=1]{LdpHandler}{PreferenceParser}
+
+  \umlsimpleclass[below=0.25 of Representation.south west,anchor=north west]{RepresentationPreferences}
+  \umldep[arg=creates,pos=0.5]{PreferenceParser}{RepresentationPreferences}
+
+
+  \begin{umlpackage}[x=6,y=-3.5]{Operations}
     \umlclass[]{OperationFactory}{}{
       + OperationFactory(ResourceStore)\\
-      + createOperation(method : string, target : ResourceIdentifier, \ldots) : Operation\\
+      + createOperation(method : string, ResourceIdentifier,\\*
+                        RepresentationPreferences, \ldots) : Operation\\
     }
     \umlaggreg[mult=1,geometry=|-]{LdpHandler}{OperationFactory}
 
     \umlinterface[below=1 of OperationFactory]{Operation}{
       + target : ResourceIdentifier\\
-      + body : Representation\\
+      + requestBody : Representation?\\
+      + preferences : RepresentationPreferences\\
       + requiredPermissions : PermissionSet\\
     }{
       + execute() : Promise<ResponseDescription>\\
     }
     \umldep[arg=creates,pos=0.5]{OperationFactory}{Operation}
 
-    \umlsimpleclass[right=1 of Operation.north east,anchor=south west]{GetOperation}
+    \umlsimpleclass[right=1 of Operation.north east,anchor=north west]{GetOperation}
     \umlsimpleclass[below=.25 of GetOperation.south west,anchor=north west]{PostOperation}
     \umlsimpleclass[below=.25 of PostOperation.south west,anchor=north west]{PutOperation}
     \umlsimpleclass[below=.25 of PutOperation.south west,anchor=north west]{PatchOperation}
@@ -106,8 +115,8 @@
 \end{umlpackage}
 
 \begin{umlpackage}{Storage}
-  \umlinterface[below=3 of Operation]{ResourceStore}{}{
-    + getRepresentation(ResourceIdentifier) : Promise<Representation>\\
+  \umlinterface[below=2.5 of Operation]{ResourceStore}{}{
+    + getRepresentation(ResourceIdentifier, RepresentationPreferences) : Promise<Representation>\\
     + addResource(container : ResourceIdentifier, Representation) : Promise<ResourceIdentifier>\\
     + setRepresentation(ResourceIdentifier, Representation) : Promise<void>\\
     + deleteResource(ResourceIdentifier) : Promise<void>\\
