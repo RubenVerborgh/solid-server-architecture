@@ -127,11 +127,12 @@
 \end{umlpackage}
 
 \begin{umlpackage}{Authorization}
-  \umlinterface[below=4.5 of CredentialsExtractor.south east,anchor=north east]{Authorizer}{}{
+  \umlinterface[below=4.5 of CredentialsExtractor]{Authorizer}{}{
     + hasPermissions(Credentials,
                      ResourceIdentifier,\\*
                      PermissionSet) : Promise<boolean>\\
   }
+  \umldep[arg=uses,pos=0.3]{Authorizer}{Credentials}
   \umlaggreg[mult=1,geometry=|-,weight=0.6]{LdpHandler}{Authorizer}
 
   \umlsimpleclass[below=1 of Authorizer]{AclBasedAuthorizer}
