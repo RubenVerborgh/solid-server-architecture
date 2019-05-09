@@ -60,14 +60,14 @@
   \umlimpl{LdpHandler}{HttpHandler}
 
 
-  \umlsimpleclass[right=2 of LdpHandler.north east]{TargetExtractor}
+  \umlsimpleclass[right=2 of LdpHandler.north east,anchor=south west]{TargetExtractor}
   \umlaggreg[mult=1]{LdpHandler}{TargetExtractor}
 
   \umlsimpleclass[right=2 of TargetExtractor]{ResourceIdentifier}
   \umldep[arg=creates,pos=0.5]{TargetExtractor}{ResourceIdentifier}
 
 
-  \umlsimpleclass[below=0.25 of TargetExtractor.south west,anchor=north west]{BodyParser}
+  \umlsimpleclass[below=0.25 of TargetExtractor.south east,anchor=north east]{BodyParser}
   \umlaggreg[mult=*]{LdpHandler}{BodyParser}
 
   \umlsimpleclass[below=0.25 of ResourceIdentifier.south west,anchor=north west]{Representation}
@@ -77,14 +77,21 @@
   \umlinherit{Patch}{Representation}
 
 
-  \umlsimpleclass[below=0.25 of BodyParser.south west,anchor=north west]{PreferenceParser}
+  \umlsimpleclass[below=0.25 of BodyParser.south east,anchor=north east]{PreferenceParser}
   \umlaggreg[mult=1]{LdpHandler}{PreferenceParser}
 
   \umlsimpleclass[below=0.25 of Representation.south west,anchor=north west]{RepresentationPreferences}
   \umldep[arg=creates,pos=0.5]{PreferenceParser}{RepresentationPreferences}
 
 
-  \begin{umlpackage}[x=6,y=-3.5]{Operations}
+  \umlsimpleclass[below=0.25 of PreferenceParser.south east,anchor=north east]{ResponseWriter}
+  \umlaggreg[mult=1]{LdpHandler}{ResponseWriter}
+
+  \umlsimpleclass[below=0.25 of RepresentationPreferences.south west,anchor=north west]{HttpResponse}
+  \umldep[arg=writes,pos=0.5]{ResponseWriter}{HttpResponse}
+
+
+  \begin{umlpackage}[x=6,y=-4]{Operations}
     \umlclass[]{OperationFactory}{}{
       + OperationFactory(ResourceStore)\\
       + createOperation(method : string, ResourceIdentifier,\\*
@@ -115,7 +122,7 @@
 \end{umlpackage}
 
 \begin{umlpackage}{Storage}
-  \umlinterface[below=2.5 of Operation]{ResourceStore}{}{
+  \umlinterface[below=2.25 of Operation]{ResourceStore}{}{
     + getRepresentation(ResourceIdentifier, RepresentationPreferences) : Promise<Representation>\\
     + addResource(container : ResourceIdentifier, Representation) : Promise<ResourceIdentifier>\\
     + setRepresentation(ResourceIdentifier, Representation) : Promise<void>\\
