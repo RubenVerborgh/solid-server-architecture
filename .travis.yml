@@ -11,7 +11,9 @@ addons:
       - pgf
 
 script:
-  - pdflatex -interaction=nonstopmode -halt-on-error *.tex
+  - for file in *.tex; do
+      pdflatex -interaction=nonstopmode -halt-on-error $file;
+    done
 
 after_success:
 - ./.travis_publish
