@@ -45,8 +45,6 @@ and to highlight concerns.
 
 It does not have any official standing whatsoever.
 
-\clearpage
-
 \newcommand\ResourceStoreBody{%
   + getRepresentation(ResourceIdentifier, RepresentationPreferences) : Promise<Representation>\\
   + addResource(container : ResourceIdentifier, Representation) : Promise<ResourceIdentifier>\\
@@ -56,7 +54,6 @@ It does not have any official standing whatsoever.
 }
 
 \section*{Overview of LDP and Access Control}
-
 \begin{tikzpicture}
 
 \begin{umlpackage}{HTTP}
@@ -172,6 +169,12 @@ It does not have any official standing whatsoever.
   \umlaggreg[mult=1,geometry=|-]{AclBasedAuthorizer}{ResourceStore}
 \end{umlpackage}
 
+\end{tikzpicture}
+
+
+\section*{Example classes and interfaces deriving from ResourceStore}
+\begin{tikzpicture}
+  \umlinterface{ResourceStore}{}{\ResourceStoreBody}
 \end{tikzpicture}
 
 \end{document}
