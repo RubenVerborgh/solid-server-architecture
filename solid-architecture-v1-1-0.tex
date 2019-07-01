@@ -47,6 +47,14 @@ It does not have any official standing whatsoever.
 
 \clearpage
 
+\newcommand\ResourceStoreBody{%
+  + getRepresentation(ResourceIdentifier, RepresentationPreferences) : Promise<Representation>\\
+  + addResource(container : ResourceIdentifier, Representation) : Promise<ResourceIdentifier>\\
+  + setRepresentation(ResourceIdentifier, Representation) : Promise<void>\\
+  + deleteResource(ResourceIdentifier) : Promise<void>\\
+  + modifyResource(ResourceIdentifier, Patch) : Promise<void>\\
+}
+
 \section*{Overview of LDP and Access Control}
 
 \begin{tikzpicture}
@@ -135,11 +143,7 @@ It does not have any official standing whatsoever.
 
 \begin{umlpackage}{Storage}
   \umlinterface[below=2.25 of Operation]{ResourceStore}{}{
-    + getRepresentation(ResourceIdentifier, RepresentationPreferences) : Promise<Representation>\\
-    + addResource(container : ResourceIdentifier, Representation) : Promise<ResourceIdentifier>\\
-    + setRepresentation(ResourceIdentifier, Representation) : Promise<void>\\
-    + deleteResource(ResourceIdentifier) : Promise<void>\\
-    + modifyResource(ResourceIdentifier, Patch) : Promise<void>\\
+    \ResourceStoreBody
   }
   \umlaggreg[mult=1]{Operation}{ResourceStore}
 \end{umlpackage}
