@@ -177,9 +177,23 @@ It does not have any official standing whatsoever.
   \umlinterface{ResourceStore}{}{\ResourceStoreBody}
 
 
+  % FileSystemStore
+
+  \umlclass[right=3 of ResourceStore]{FileSystemStore}{
+    - ResourceMapper mapper\\
+  }{}
+  \umlimpl{FileSystemStore}{ResourceStore}
+
+  \umlinterface[right=2 of FileSystemStore]{ResourceMapper}{}{
+    + mapFilePathToUrl(File): Promise<\{URL, Metadata\}>\\
+    + mapUrlToFilePath(URL, Metadata): Promise<File>\\
+  }
+  \umlaggreg[mult=1]{FileSystemStore}{ResourceMapper}
+
+
   % KeyValueStore
 
-  \umlabstract[right=3 of ResourceStore]{KeyValueStore}{}{
+  \umlabstract[above=4.5 of FileSystemStore.south west,anchor=west]{KeyValueStore}{}{
     + get(ResourceIdentifier) : Promise<BinaryRepresentation>\\
     + replace(ResourceIdentifier, BinaryRepresentation) : Promise<void>\\
     + delete(ResourceIdentifier) : Promise<void>\\
