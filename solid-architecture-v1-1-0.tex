@@ -175,6 +175,22 @@ It does not have any official standing whatsoever.
 \section*{Example classes and interfaces deriving from ResourceStore}
 \begin{tikzpicture}
   \umlinterface{ResourceStore}{}{\ResourceStoreBody}
+
+
+  % KeyValueStore
+
+  \umlabstract[right=3 of ResourceStore]{KeyValueStore}{}{
+    + get(ResourceIdentifier) : Promise<BinaryRepresentation>\\
+    + replace(ResourceIdentifier, BinaryRepresentation) : Promise<void>\\
+    + delete(ResourceIdentifier) : Promise<void>\\
+  }
+  \umlimpl{KeyValueStore}{ResourceStore}
+
+  \umlsimpleclass[right=2 of KeyValueStore.north east]{RedisStore}
+  \umlinherit{RedisStore}{KeyValueStore}
+
+  \umlsimpleclass[right=2 of KeyValueStore.east]{CassandraStore}
+  \umlinherit{CassandraStore}{KeyValueStore}
 \end{tikzpicture}
 
 \end{document}
