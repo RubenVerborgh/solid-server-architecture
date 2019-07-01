@@ -205,6 +205,15 @@ It does not have any official standing whatsoever.
 
   \umlsimpleclass[right=2 of KeyValueStore.east]{CassandraStore}
   \umlinherit{CassandraStore}{KeyValueStore}
+
+
+  % TripleStore
+
+  \umlclass[below=2.3 of FileSystemStore.south west,anchor=west]{TripleStore}{}{
+    + TripleStore(endpoint: URL)\\
+  }
+  \umlimpl{TripleStore}{ResourceStore}
+
 \end{tikzpicture}
 
 \end{document}
