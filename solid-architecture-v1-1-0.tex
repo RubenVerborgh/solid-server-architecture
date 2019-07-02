@@ -7,6 +7,7 @@
 % Typography
 \usepackage[T1]{fontenc}
 \usepackage[scaled]{berasans}
+\usepackage[scaled]{beramono}
 \renewcommand*\familydefault{\sfdefault}
 \usepackage{microtype}
 \parindent 0pt
@@ -30,8 +31,7 @@
 \newenvironment{Note}
   {\begin{multicols}{3}%
      \parskip 1em}
-  {\end{multicols}%
-   \medskip}
+  {\end{multicols}}
 
 % Document metadata
 \title{
@@ -216,6 +216,8 @@ This enables back-ends to be RDF-aware when they need to,
 and RDF-oblivious when they do~not.
 \end{Note}
 
+\bigskip
+
 \begin{tikzpicture}
   \umlinterface{Representation}{
     + identifier : ResourceIdentifier?\\
@@ -250,21 +252,45 @@ and RDF-oblivious when they do~not.
 
 \end{tikzpicture}
 
+\bigskip
+
+\begin{Note}
+The \textbf{dataType} field returns the name of the class
+that elements of the \textbf{data} readable stream will have,
+for instance,
+\verb!Buffer! or \verb!Quad!.
+\columnbreak
+
+Based on the \textbf{dataType} and \textbf{metadata} fields,
+other components can decide whether or not the representation
+is acceptable to the user agent,
+and, if this is not the case,
+convert to a~format that is.
+For instance,
+a~\verb!text/turtle! stream is acceptable
+for a~user agent that requested \verb!text/*!,
+whereas a~\verb!Readable<Quad>! will still require serialization.
+
+\columnbreak
+
+\null
+\end{Note}
+
 \clearpage
 
-\section*{Example classes and interfaces deriving from ResourceStore}
+\section*{ResourceStore}
 \begin{tikzpicture}
   \umlinterface{ResourceStore}{}{\ResourceStoreBody}
 
 
   % FileSystemStore
 
-  \umlclass[right=3 of ResourceStore]{FileSystemStore}{
+  \umlclass[right=2 of ResourceStore]{FileSystemStore}{
     - ResourceMapper mapper\\
   }{}
   \umlimpl{FileSystemStore}{ResourceStore}
 
-  \umlinterface[right=2 of FileSystemStore]{ResourceMapper}{}{
+  \umlinterface[right=1 of FileSystemStore]{ResourceMapper}{}{
     + mapFilePathToUrl(File): Promise<\{URL, RepresentationMetadata\}>\\
     + mapUrlToFilePath(URL, RepresentationMetadata): Promise<File>\\
   }
@@ -273,27 +299,76 @@ and RDF-oblivious when they do~not.
 
   % KeyValueStore
 
-  \umlabstract[above=4.5 of FileSystemStore.south west,anchor=west]{KeyValueStore}{}{
+  \umlabstract[above=1 of FileSystemStore.north west,anchor=south west]{KeyValueStore}{}{
     + get(ResourceIdentifier) : Promise<BinaryRepresentation>\\
     + replace(ResourceIdentifier, BinaryRepresentation) : Promise<void>\\
     + delete(ResourceIdentifier) : Promise<void>\\
   }
-  \umlimpl{KeyValueStore}{ResourceStore}
+  \umlimpl[anchor1=west,anchor2=north east]{KeyValueStore}{ResourceStore}
 
-  \umlsimpleclass[right=2 of KeyValueStore.north east]{RedisStore}
+  \umlsimpleclass[right=1 of KeyValueStore.north east]{RedisStore}
   \umlinherit{RedisStore}{KeyValueStore}
 
-  \umlsimpleclass[right=2 of KeyValueStore.east]{CassandraStore}
+  \umlsimpleclass[right=1 of KeyValueStore.east]{CassandraStore}
   \umlinherit{CassandraStore}{KeyValueStore}
 
 
   % TripleStore
 
-  \umlclass[below=2.3 of FileSystemStore.south west,anchor=west]{TripleStore}{}{
-    + TripleStore(endpoint: URL)\\
+  \umlclass[below=1 of FileSystemStore.south west,anchor=north west]{TripleStore}{}{
+    + getRepresentation(\ldots) : Promise<QuadRepresentation>\\
   }
-  \umlimpl{TripleStore}{ResourceStore}
+  \umlimpl[anchor1=west,anchor2=south east]{TripleStore}{ResourceStore}
+
+  \umlclass[right=1 of TripleStore]{SparqlEndpointStore}{
+    - endpoint: URL\\
+  }{}
+  \umlinherit{SparqlEndpointStore}{TripleStore}
+
+
+  % RepresentationConvertor
+
+  \umlclass[below=1 of TripleStore.south west,anchor=north west]{RepresentationAdaptor}{
+    - source : ResourceStore\\
+    - convertors : Array<RepresentationConvertor>\\
+  }{}
+  \umlimpl[anchor1=west,anchor2=-30,geometry=-|]{RepresentationAdaptor}{ResourceStore}
+
+  \umlinterface[right=1 of RepresentationAdaptor]{RepresentationConvertor}{}{
+    + supports(Representation, RepresentationPreferences): Promise<boolean>\\
+    + convert(Representation, RepresentationPreferences): Promise<Representation>\\
+  }
+  \umluniaggreg[mult=*]{RepresentationAdaptor}{RepresentationConvertor}
 
 \end{tikzpicture}
+
+\bigskip
+
+\begin{Note}
+A~\textbf{ResourceStore} will \emph{try} to satisfy
+any \textbf{RepresentationPreferences} passed to it,
+but only if this is reasonably easy for the store in question.
+For instance, a~SPARQL endpoint can typically
+generate N-Triples as easily as Turtle,
+so it makes sense to directly generate N-Triples
+if the client prefers this.
+On the other hand,
+a~file system will typically only have one representation on disk,
+so it is fine to always serve that single representation,
+regardless of client preferences.
+\columnbreak
+
+The \textbf{RepresentationAdaptor} \emph{could} be used
+to satisfy client preferences more accurately.
+It has access to multiple \textbf{RepresentationConvertor} instances,
+which could (for instance) convert a~stream of quads
+into Turtle or a~specific JSON-LD frame.
+It can decorate any existing \textbf{ResourceStore}
+to extend it with more kinds of representations
+such as different content types.
+\columnbreak
+
+\null
+\end{Note}
 
 \end{document}
