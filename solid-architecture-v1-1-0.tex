@@ -5,9 +5,10 @@
 \usepackage[a3paper,landscape,margin=2cm]{geometry}
 
 % Typography
+\usepackage[T1]{fontenc}
 \usepackage[scaled]{berasans}
 \renewcommand*\familydefault{\sfdefault}
-\usepackage[T1]{fontenc}
+\usepackage{microtype}
 \parindent 0pt
 
 % TikZ
@@ -23,6 +24,13 @@
   \vskip 2em
 }
 \makeatother
+
+% Notes
+\usepackage{multicol}
+\newenvironment{Note}
+  {\begin{multicols}{3}%
+     \parskip 1em}
+  {\end{multicols}}
 
 % Document metadata
 \title{
@@ -171,6 +179,41 @@ It does not have any official standing whatsoever.
 
 \end{tikzpicture}
 
+\clearpage
+
+\section*{Resources and Representations}
+\begin{Note}
+The intention of \textbf{ResourceIdentifier} and \textbf{Representation}
+is to capture the REST notion of a~resource and its representation.
+In~the~case of a~photograph,
+the resource is the photograph itself,
+whereas a~representation is a~concrete manifestation of that photograph
+with a~certain resolution and file~type.
+In~the~case of an RDF document,
+the~resource is the RDF graph,
+and concrete representations serialize that graph
+into Turtle or specific framings of~JSON-LD.
+\columnbreak
+
+For all practical purposes,
+\textbf{ResourceIdentifier} can just be a~\textbf{URL};
+the terminology is mainly used to emphasize
+the resource/representation notion of REST.
+Also, there is no \textbf{Resource} class,
+because resources are always manipulated through representations in REST,
+so we only need to \emph{identify} resources,
+and only deal with them through their representations.
+\columnbreak
+
+Crucially, as the diagram below shows,
+the \textbf{Representation} interface
+can have vastly different underlying in-memory structures,
+such as strings, binary streams, RDF streams, etc.
+So they can be photographs as well as RDF streams,
+and most other classes handling them do not need to care.
+\end{Note}
+
+\clearpage
 
 \section*{Example classes and interfaces deriving from ResourceStore}
 \begin{tikzpicture}
