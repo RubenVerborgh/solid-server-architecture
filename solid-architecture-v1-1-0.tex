@@ -383,7 +383,72 @@ each answering to different URL patterns.
 This mechanism \emph{could} be used
 also to serve large files like images,
 or static assets such as apps or scripts.
+\end{Note}
 
+\clearpage
+
+\section*{Patch}
+\begin{Note}
+A~\textbf{Patch} contains a~description
+of changes to be made to a~certain
+(representation of a) resource.
+The \textbf{Patch} object itself
+does not know how to \emph{apply} this patch;
+it is merely a~data object.
+\columnbreak
+
+\null
+\columnbreak
+
+\null
+\end{Note}
+
+\bigskip
+
+\begin{tikzpicture}
+  \umlinterface{Patch}{}{}
+
+  \umlclass[right=2 of Patch.north east,anchor=south west]{LineBasedPatch}{
+    + deletions : Map<int, string>\\
+    + additions : Map<int, string>\\
+  }{}
+  \umlimpl[anchors=west and north east]{LineBasedPatch}{Patch}
+
+  \umlclass[below=1 of LineBasedPatch.south west,anchor=north west]{GraphPatternPatch}{
+    + where  : Array<QuadPattern>\\
+    + delete : Array<QuadPattern>\\
+    + insert : Array<QuadPattern>\\
+  }{}
+  \umlimpl[anchor2=east]{GraphPatternPatch}{Patch}
+
+  \umlclass[below=1 of GraphPatternPatch.south west,anchor=north west]{BinaryPatch}{}{}
+  \umlimpl[anchors=north west and south east]{BinaryPatch}{Patch}
+
+  \umlclass[below=1 of BinaryPatch.south west,anchor=north west]{ImageFilter}{}{}
+  \umlimpl[anchors=north west and south]{ImageFilter}{Patch}
+\end{tikzpicture}
+
+\begin{Note}
+A~\textbf{ResourceStore} \emph{might} have knowledge
+on how to apply certain types of patches itself.
+For instance, file-based stores
+might have built-in support for \textbf{LineBasedPatch},
+and SPARQL endpoints or in-memory RDF stores
+likely have built-in support for \textbf{GraphPatternPatch}.
+\columnbreak
+
+There is case to be made for a~\emph{Patcher} interface
+for objects that can apply all patches of a~certain type
+to certain representations.
+For instance,
+a~\textbf{GraphPatternPatch} could be applied
+to RDF graphs serialized as documents,
+by a~\emph{GraphPatternPatcher}
+that operates independently of any specific store.
+
+\columnbreak
+
+\null
 \end{Note}
 
 \end{document}
