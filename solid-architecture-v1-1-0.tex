@@ -30,7 +30,8 @@
 \newenvironment{Note}
   {\begin{multicols}{3}%
      \parskip 1em}
-  {\end{multicols}}
+  {\end{multicols}%
+   \medskip}
 
 % Document metadata
 \title{
@@ -211,7 +212,30 @@ can have vastly different underlying in-memory structures,
 such as strings, binary streams, RDF streams, etc.
 So they can be photographs as well as RDF streams,
 and most other classes handling them do not need to care.
+This enables back-ends to be RDF-aware when they need to,
+and RDF-oblivious when they do~not.
 \end{Note}
+
+\begin{tikzpicture}
+  \umlinterface{Representation}{
+    + identifier : ResourceIdentifier?\\
+    + metadata : RepresentationMetadata\\
+  }{}
+
+  \umlinterface[above=2 of Representation]{ResourceIdentifier}{
+  }{}
+  \umlaggreg[mult=0..1]{Representation}{ResourceIdentifier}
+
+  \umlinterface[below=2 of Representation]{RepresentationMetadata}{
+    + byteSize : int?\\
+    + contentType : String?\\
+    + encoding : String?\\
+    + language : String?\\
+    + dateTime : Date?\\
+    + profiles : Array<String>\\
+  }{}
+  \umlaggreg[mult=1]{Representation}{RepresentationMetadata}
+\end{tikzpicture}
 
 \clearpage
 
@@ -228,8 +252,8 @@ and most other classes handling them do not need to care.
   \umlimpl{FileSystemStore}{ResourceStore}
 
   \umlinterface[right=2 of FileSystemStore]{ResourceMapper}{}{
-    + mapFilePathToUrl(File): Promise<\{URL, Metadata\}>\\
-    + mapUrlToFilePath(URL, Metadata): Promise<File>\\
+    + mapFilePathToUrl(File): Promise<\{URL, RepresentationMetadata\}>\\
+    + mapUrlToFilePath(URL, RepresentationMetadata): Promise<File>\\
   }
   \umlaggreg[mult=1]{FileSystemStore}{ResourceMapper}
 
