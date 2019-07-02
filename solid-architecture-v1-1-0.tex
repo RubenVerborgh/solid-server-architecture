@@ -340,6 +340,15 @@ whereas a~\verb!Readable<Quad>! will still require serialization.
   }
   \umluniaggreg[mult=*]{RepresentationAdaptor}{RepresentationConvertor}
 
+
+  % CompositeResourceStore
+
+  \umlclass[below=1 of RepresentationAdaptor.south west,anchor=north west]{CompositeResourceStore}{
+    - sources : Map<UrlPattern, ResouceStore>\\
+  }{}
+  \umlimpl[anchor1=173,anchor2=-40,geometry=-|]{CompositeResourceStore}{ResourceStore}
+  \umlunicompo[mult=*,anchor1=187,anchor2=-60,geometry=-|]{CompositeResourceStore}{ResourceStore}
+
 \end{tikzpicture}
 
 \bigskip
@@ -368,7 +377,13 @@ to extend it with more kinds of representations
 such as different content types.
 \columnbreak
 
-\null
+A~\textbf{CompositeResourceStore} can be used
+to have multiple back-ends on one pod,
+each answering to different URL patterns.
+This mechanism \emph{could} be used
+also to serve large files like images,
+or static assets such as apps or scripts.
+
 \end{Note}
 
 \end{document}
