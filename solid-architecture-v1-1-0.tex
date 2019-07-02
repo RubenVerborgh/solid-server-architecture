@@ -220,9 +220,11 @@ and RDF-oblivious when they do~not.
   \umlinterface{Representation}{
     + identifier : ResourceIdentifier?\\
     + metadata : RepresentationMetadata\\
+    + data : Readable<Object>\\
+    + dataType : String\\
   }{}
 
-  \umlinterface[above=2 of Representation]{ResourceIdentifier}{
+  \umlinterface[left=2 of Representation]{ResourceIdentifier}{
   }{}
   \umlaggreg[mult=0..1]{Representation}{ResourceIdentifier}
 
@@ -235,6 +237,17 @@ and RDF-oblivious when they do~not.
     + profiles : Array<String>\\
   }{}
   \umlaggreg[mult=1]{Representation}{RepresentationMetadata}
+
+  \umlclass[right=2 of Representation.north east]{BinaryRepresentation}{
+    + data : Readable<Buffer>\\
+  }{}
+  \umlimpl{BinaryRepresentation}{Representation}
+
+  \umlclass[right=2 of Representation.south east]{QuadRepresentation}{
+    + data : Readable<Quad>\\
+  }{}
+  \umlimpl{QuadRepresentation}{Representation}
+
 \end{tikzpicture}
 
 \clearpage
