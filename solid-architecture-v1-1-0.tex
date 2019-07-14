@@ -251,13 +251,15 @@ and RDF-oblivious when they do~not.
   \umluniaggreg[mult=0..1]{Representation}{ResourceIdentifier}
 
   \umlinterface[below=2 of Representation]{RepresentationMetadata}{
+  }{
+    + raw : Array<Quad>\\
     + byteSize : int?\\
     + contentType : String?\\
     + encoding : String?\\
     + language : String?\\
     + dateTime : Date?\\
     + profiles : Array<String>\\
-  }{}
+  }
   \umluniaggreg[mult=1]{Representation}{RepresentationMetadata}
 
   \umlclass[right=2 of Representation.north east]{BinaryRepresentation}{
@@ -292,8 +294,13 @@ for a~user agent that requested \verb!text/*!,
 whereas a~\verb!Readable<Quad>! will still require serialization.
 
 \columnbreak
+The \textbf{RepresentationMetadata} interface
+essentially exposes a~set of RDF triples
+that describe properties about the representation.
+For convenience,
+direct getters to common properties can be added,
+non-binding examples of which are shown in the diagram.
 
-\null
 \end{Note}
 
 \clearpage
