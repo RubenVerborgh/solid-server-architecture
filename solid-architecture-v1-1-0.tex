@@ -300,9 +300,9 @@ whereas a~\verb!Readable<Quad>! will still require serialization.
   % KeyValueStore
 
   \umlabstract[above=1 of FileSystemStore.north west,anchor=south west]{KeyValueStore}{}{
-    + get(ResourceIdentifier) : Promise<BinaryRepresentation>\\
-    + replace(ResourceIdentifier, BinaryRepresentation) : Promise<void>\\
-    + delete(ResourceIdentifier) : Promise<void>\\
+    \# get(ResourceIdentifier) : Promise<BinaryRepresentation>\\
+    \# replace(ResourceIdentifier, BinaryRepresentation) : Promise<void>\\
+    \# delete(ResourceIdentifier) : Promise<void>\\
   }
   \umlimpl[anchor1=west,anchor2=north east]{KeyValueStore}{ResourceStore}
 
