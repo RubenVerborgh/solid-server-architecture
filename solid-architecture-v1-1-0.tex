@@ -355,22 +355,22 @@ non-binding examples of which are shown in the diagram.
 
   % RepresentationConvertor
 
-  \umlclass[below=1 of TripleStore.south west,anchor=north west]{RepresentationAdaptor}{
+  \umlclass[below=1 of TripleStore.south west,anchor=north west]{RepresentationConvertingStore}{
     - source : ResourceStore\\
     - convertors : Array<RepresentationConvertor>\\
   }{}
-  \umlimpl[anchor1=west,anchor2=-30,geometry=-|]{RepresentationAdaptor}{ResourceStore}
+  \umlimpl[anchor1=west,anchor2=-30,geometry=-|]{RepresentationConvertingStore}{ResourceStore}
 
-  \umlinterface[right=1 of RepresentationAdaptor]{RepresentationConvertor}{}{
+  \umlinterface[right=1 of RepresentationConvertingStore]{RepresentationConvertor}{}{
     + supports(Representation, RepresentationPreferences): Promise<boolean>\\
     + convert(Representation, RepresentationPreferences): Promise<Representation>\\
   }
-  \umluniaggreg[mult=*]{RepresentationAdaptor}{RepresentationConvertor}
+  \umluniaggreg[mult=*]{RepresentationConvertingStore}{RepresentationConvertor}
 
 
   % CompositeResourceStore
 
-  \umlclass[below=1 of RepresentationAdaptor.south west,anchor=north west]{CompositeResourceStore}{
+  \umlclass[below=1 of RepresentationConvertingStore.south west,anchor=north west]{CompositeResourceStore}{
     - sources : Map<UrlPattern, ResouceStore>\\
   }{}
   \umlimpl[anchor1=173,anchor2=-40,geometry=-|]{CompositeResourceStore}{ResourceStore}
@@ -394,9 +394,9 @@ so it is fine to always serve that single representation,
 regardless of client preferences.
 \columnbreak
 
-The \textbf{RepresentationAdaptor} \emph{could} be used
+Optionally, a~\textbf{RepresentationConvertingStore} can be used
 to satisfy client preferences more accurately.
-It has access to multiple \textbf{RepresentationConvertor} instances,
+It has access to \textbf{RepresentationConvertor} instances,
 which could (for instance) convert a~stream of quads
 into Turtle or a~specific JSON-LD frame.
 It can decorate any existing \textbf{ResourceStore}
