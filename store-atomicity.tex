@@ -136,7 +136,7 @@ async function modifyResource(id, patch) {
 
 \end{Note}
 
-\section*{Design considerations}
+\subsection*{Design considerations}
 
 \begin{Note}
 It is important to emphasize
@@ -213,5 +213,114 @@ that aim to support conditional requests,
 and analyze their properties.
 
 \end{Note}
+
+\clearpage
+
+\section*{Approach 1 to conditional requests: \emph{transactions}}
+\begin{tikzpicture}
+  \umlinterface{ResourceStore}{}{
+  + createTransaction(ResourceIdentifier) : Promise<ResourceTransaction>\\
+  }
+
+  \umlinterface[right=2 of ResourceStore]{ResourceTransaction}{}{
+  + getRepresentation(RepresentationPreferences) : Promise<Representation>\\
+  + addResource(Representation) : Promise<ResourceIdentifier>\\
+  + setRepresentation(Representation) : Promise<void>\\
+  + deleteResource() : Promise<void>\\
+  + modifyResource(Patch) : Promise<void>\\
+  + release() : Promise<void>\\
+  }
+  \umldep[arg=creates,pos=0.5]{ResourceStore}{ResourceTransaction}
+\end{tikzpicture}
+
+\subsection*{Description}
+
+\begin{Note}
+The original \textbf{ResourceStore} methods
+are moved into a~\textbf{ResourceTransaction} interface,
+which gets an additional \verb!release! method
+to end the transaction.
+The caller becomes responsible for steering the atomicity
+(but the implementation remains with the \textbf{ResourceStore}).
+
+\columnbreak
+Implementations do not need to be
+(and likely would not be)
+\emph{actual} transactions,
+in the sense that operations do not \emph{need}
+to be buffered until the very end when \verb!release! is called.
+They rather can function as \emph{locks/semaphores}
+that guarantee no other operations
+can happen in the meantime.
+
+\columnbreak
+\null
+
+\end{Note}
+
+\subsection*{Analysis}
+
+\begin{Note}
+Requirements:
+\begin{itemize}
+  \item Every \textbf{ResourceStore} implementation must be transaction-aware
+        (or at least \emph{lock}-aware),
+        which is not the case for back-ends such as files.
+  \item Callers of \textbf{ResourceStore} must be transaction-aware.
+\end{itemize}
+
+\bigskip
+When a~conditional request arrives, implementers must:
+\begin{enumerate}
+  \item call \verb!createTransaction!
+  \item call \verb!getRepresentation!
+  \item check the conditions
+  \item if the conditions are satisfied, call the modification method
+  \item call \verb!release!
+\end{enumerate}
+
+\bigskip
+This comes with a~couple of caveats:
+\begin{itemize}
+  \item We probably do not want to retrieve the full representation,
+        but only the metadata (lazy loading can do that).
+
+  \item It might result in the representation (or its metadata)
+        being loaded twice:
+        once by the caller when getting the representation,
+        and once by the store internally when performing the modification.
+        (The transaction can, however, cache this.)
+
+  \item It assumes that \verb!getRepresentation! succeeds,
+        which might not be the case for append-only stores.
+
+  \item It assumes that \verb!createTransaction! is sufficiently cheap.
+
+  \item In general,
+        it assumes that the caller has the best knowledge
+        for checking the conditions in the cheapest way possible,
+        which is not necessarily true.
+        For instance,
+        for one store it might be expensive to calculate ETag
+        but not the last modified date,
+        whereas it might be the opposite for another.
+        A~certain store might even be able to determine
+        that a~condition is met \emph{without} retrieving
+        a~representation or its metadata
+        (for instance, if its global last-modified date
+         is not later than the requested one).
+\end{itemize}
+
+\columnbreak
+\null
+
+
+\columnbreak
+\null
+
+\end{Note}
+
+
+
 
 \end{document}
