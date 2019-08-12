@@ -1,0 +1,135 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+
+% Page setup
+\usepackage[a3paper,landscape,margin=2cm]{geometry}
+
+% Typography
+\usepackage[T1]{fontenc}
+\usepackage[scaled]{berasans}
+\usepackage[scaled]{beramono}
+\renewcommand*\familydefault{\sfdefault}
+\usepackage{microtype}
+\usepackage{fnpct}
+\parindent 0pt
+
+% TikZ
+\usepackage{./tikz-uml}
+\usetikzlibrary{positioning}
+
+% Headings
+\makeatletter
+\def\@maketitle{%
+  {\LARGE\bf\@title\par}
+  \vskip .5em
+  {\large\@author\ -- \@date\par}
+  \vskip 2em
+}
+\makeatother
+
+% Notes
+\usepackage{multicol}
+\newenvironment{Note}
+  {\begin{multicols}{3}%
+     \parskip 1em}
+  {\end{multicols}}
+
+% Document metadata
+\title{
+  Solid server -- Store atomicity
+  \it (status: draft)
+}
+\author{Ruben Verborgh}
+
+\begin{document}
+
+\maketitle
+
+\section*{ResourceStore and atomic operations}
+\begin{tikzpicture}
+  \umlinterface{ResourceStore}{}{
+  + getRepresentation(ResourceIdentifier, RepresentationPreferences) : Promise<Representation>\\
+  + addResource(container : ResourceIdentifier, Representation) : Promise<ResourceIdentifier>\\
+  + setRepresentation(ResourceIdentifier, Representation) : Promise<void>\\
+  + deleteResource(ResourceIdentifier) : Promise<void>\\
+  + modifyResource(ResourceIdentifier, Patch) : Promise<void>\\
+  }
+
+  \umlinterface[right=2 of ResourceStore.north east, anchor=south west]{AtomicResourceStore}{}{
+  }
+  \umlimpl{AtomicResourceStore}{ResourceStore}
+
+  \umlclass[right=2 of ResourceStore.east]{LockingResourceStore}{
+    - ResourceStore source\\
+    - ResourceLocker locks\\
+  }{
+  }
+  \umlimpl{LockingResourceStore}{ResourceStore}
+  \umlimpl{LockingResourceStore}{AtomicResourceStore}
+  \umlunicompo[mult=1,anchor1=197,anchor2=-5]{LockingResourceStore}{ResourceStore}
+
+  \umlinterface[right=2 of LockingResourceStore.east]{ResourceLocker}{
+  }{
+    + acquire(ResourceIdentifier) : Promise<Lock>\\
+  }
+  \umluniaggreg[mult=1]{LockingResourceStore}{ResourceLocker}
+
+  \umlinterface[below=1 of ResourceLocker.south]{Lock}{
+  }{
+    + release() : Promise<void>\\
+  }
+  \umldep[arg=creates,pos=0.5]{ResourceLocker}{Lock}
+
+\end{tikzpicture}
+
+\hyphenation{ResourceStore}
+
+\begin{Note}
+The \textbf{ResourceStore} interface has been designed
+such that each of its methods can be implemented
+in an \emph{atomic} way:
+for each CRUD operation%
+\footnote{%
+  There are 5~operations rather than~4
+  because we distinguish between
+  full representations update for \texttt{PUT}
+  and partial updates for \texttt{PATCH}.
+},
+only one dedicated method needs to be called.
+It is up to the implementer of the interface
+to (not) make an implementation atomic.
+For some implementations,
+such as triple stores or other database back-ends,
+atomicity is a~given.
+We~\emph{could} explicitly indicate atomicity
+by having such implementations
+implement the (otherwise empty) \textbf{AtomicResourceStore} interface
+as a~tag.
+
+\columnbreak
+
+Some implementations are \emph{not} atomic by default,
+such as a~file system,
+where a~read+append sequence could unknowingly
+be interrupted by a~write
+that thereby breaks atomicity.
+Such non-atomic stores could be made atomic
+by decorating them with a~\textbf{LockingResourceStore}.
+This class wraps another \textbf{ResourceStore}
+with a~locking mechanism,
+which can be implemented in different ways.
+An example method implementation is listed on the right.
+
+\columnbreak
+
+\begin{verbatim}
+async function modifyResource(id, patch) {
+  const lock = await this._locks.acquire(id);
+  try { return await this._source.modifyResource(id, patch); }
+  finally { await lock.release(); }
+}
+\end{verbatim}
+
+\end{Note}
+
+\end{document}
