@@ -263,9 +263,12 @@ can happen in the meantime.
 \begin{Note}
 Requirements:
 \begin{itemize}
+  \item The caller knows how to validate request conditions.
+
   \item Every \textbf{ResourceStore} implementation must be transaction-aware
         (or at least \emph{lock}-aware),
         which is not the case for back-ends such as files.
+
   \item Callers of \textbf{ResourceStore} must be transaction-aware.
 \end{itemize}
 
@@ -317,6 +320,76 @@ This comes with a~couple of caveats:
 
 \columnbreak
 \null
+
+\end{Note}
+
+
+\section*{Approach 2 to conditional requests: \emph{passing a~validator}}
+\begin{tikzpicture}
+  \umlinterface{ResourceStore}{}{
+  + getRepresentation(ResourceIdentifier, RepresentationPreferences, ConditionValidator) : Promise<Representation>\\
+  + addResource(container : ResourceIdentifier, Representation, ConditionValidator) : Promise<ResourceIdentifier>\\
+  + setRepresentation(ResourceIdentifier, Representation, ConditionValidator) : Promise<void>\\
+  + deleteResource(ResourceIdentifier, ConditionValidator) : Promise<void>\\
+  + modifyResource(ResourceIdentifier, Patch, ConditionValidator) : Promise<void>\\
+  }
+
+  \umlinterface[right=2 of ResourceStore]{ConditionValidator}{}{
+  + validate(RepresentationMetadata): boolean\\
+  }
+  \umldep[arg=uses,pos=0.5]{ResourceStore}{ConditionValidator}
+\end{tikzpicture}
+
+\subsection*{Description}
+
+\begin{Note}
+A~\verb!ConditionValidator! is passed to all write methods
+(and possibly also read) of \verb!ResourceStore!.
+The store is responsible for calling \verb!ResourceStore!
+at the right moment,
+and for aborting the modification if validation fails.
+The caller is responsible for writing the validation code.
+
+\columnbreak
+\null
+
+\columnbreak
+\null
+
+\end{Note}
+
+\subsection*{Analysis}
+
+\begin{Note}
+Requirements:
+\begin{itemize}
+  \item The caller knows how to validate request conditions,
+        given metadata.
+\end{itemize}
+
+\bigskip
+When a~conditional request arrives, implementers must:
+\begin{enumerate}
+  \item call the modification method,
+        passing in the validation code
+\end{enumerate}
+
+\bigskip
+This comes with a~couple of caveats
+(details in previous section):
+\begin{itemize}
+  \item It assumes that metadata is available.
+  \item It assumes that retrieving metadata is sufficiently cheap.
+  \item It assumes that the caller has the best knowledge for checking conditions.
+\end{itemize}
+
+\columnbreak
+\null
+
+
+\columnbreak
+\null
+
 
 \end{Note}
 
