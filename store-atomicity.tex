@@ -34,6 +34,10 @@
      \parskip 1em}
   {\end{multicols}}
 
+% Lists
+\usepackage{enumitem}
+\setlist{nosep,topsep=-10pt}
+
 % Document metadata
 \title{
   Solid server -- Store atomicity
@@ -129,6 +133,48 @@ async function modifyResource(id, patch) {
   finally { await lock.release(); }
 }
 \end{verbatim}
+
+\end{Note}
+
+\section*{Design considerations}
+
+\begin{Note}
+It is important to emphasize
+that atomicity is \emph{not} the only reason
+for the design of the \textbf{ResourceStore} interface.
+The other consideration is in the 5\textsuperscript{th} method
+\verb!modifyResource!,
+which allows us to optimize modifications in a~backend-specific way.
+Since we expect small modifications to larger resources
+to be a~common pattern for Solid apps,
+we need to be able to handle those efficiently.
+
+\columnbreak
+
+A~simpler implementation with 4~methods
+could support \verb!PATCH! as follows:
+\begin{enumerate}
+  \item call \verb!getRepresentation!
+  \item apply the patch
+  \item call \verb!setRepresentation!
+\end{enumerate}
+
+However, in addition to violating atomicity
+(or requiring another locking mechanism),
+it would also give suboptimal results
+when the resource is large
+and the patch is just a~single triple.
+Moreover, it would be unnecessarily complex and slow
+for the case of triple stores,
+which support patches natively.
+
+\columnbreak
+In contrast,
+\verb!modifyResource! gives implementations the freedom
+on how to apply patches,
+such that they can pick whichever option is most efficient
+for a~given patch
+and, if desired, support atomicity.
 
 \end{Note}
 
