@@ -191,7 +191,7 @@ we have established that \textbf{ResourceStore}:
 
 \columnbreak
 However, the proposed mechanism
-does \emph{not} support conditional requests,
+does \emph{not} support conditional HTTP requests (RFC~7232),
 which must be aborted if the resource
 prior to modification
 does not satisfy certain conditions.
@@ -299,6 +299,8 @@ This comes with a~couple of caveats:
 
   \item It assumes that \verb!createTransaction! is sufficiently cheap.
 
+  \item It assumes that keeping a~lock/transaction open is sufficiently cheap.
+
   \item In general,
         it assumes that the caller has the best knowledge
         for checking the conditions in the cheapest way possible,
@@ -343,15 +345,17 @@ This comes with a~couple of caveats:
 \subsection*{Description}
 
 \begin{Note}
-A~\verb!ConditionValidator! is passed to all write methods
-(and possibly also read) of \verb!ResourceStore!.
-The store is responsible for calling \verb!ResourceStore!
+A~\textbf{ConditionValidator} is passed to all write methods
+(and possibly also read) of \textbf{ResourceStore}.
+The store is responsible for calling \verb!validate!
 at the right moment,
 and for aborting the modification if validation fails.
 The caller is responsible for writing the validation code.
 
 \columnbreak
-\null
+(The validator argument \emph{could} be optional;
+ if a~store decides to not support conditional requests,
+ it must throw an error if a~validator is passed.)
 
 \columnbreak
 \null
@@ -372,6 +376,8 @@ When a~conditional request arrives, implementers must:
 \begin{enumerate}
   \item call the modification method,
         passing in the validation code
+  \item have \textbf{ResourceStore} call the validator
+        at the right time
 \end{enumerate}
 
 \bigskip
@@ -381,6 +387,8 @@ This comes with a~couple of caveats
   \item It assumes that metadata is available.
   \item It assumes that retrieving metadata is sufficiently cheap.
   \item It assumes that the caller has the best knowledge for checking conditions.
+  \item For every store implementation,
+        it must be tested whether every method checks the conditions.
 \end{itemize}
 
 \columnbreak
@@ -390,10 +398,93 @@ This comes with a~couple of caveats
 \columnbreak
 \null
 
-
 \end{Note}
 
 
+\clearpage
+\section*{Approach 3 to conditional requests: \emph{passing the conditions}}
+\begin{tikzpicture}
+  \umlinterface{ResourceStore}{}{
+  + getRepresentation(ResourceIdentifier, RepresentationPreferences, Conditions) : Promise<Representation>\\
+  + addResource(container : ResourceIdentifier, Representation, Conditions) : Promise<ResourceIdentifier>\\
+  + setRepresentation(ResourceIdentifier, Representation, Conditions) : Promise<void>\\
+  + deleteResource(ResourceIdentifier, Conditions) : Promise<void>\\
+  + modifyResource(ResourceIdentifier, Patch, Conditions) : Promise<void>\\
+  }
 
+  \umlinterface[right=2 of ResourceStore]{Conditions}{
+    + matchesEtag : string[]\\
+    + notMatchesEtag : string[]\\
+    + modifiedSince: date?\\
+    + unmodifiedSince: date?\\
+  }{}
+  \umldep[arg=uses,pos=0.5]{ResourceStore}{Conditions}
+
+  \umlclass[below=1 of Conditions]{ConditionValidator}{}{
+  + matches(conditions : Conditions, eTag : string?, lastModified : date?): boolean\\
+  }
+  \umldep[arg=uses,pos=0.5]{ConditionValidator}{Conditions}
+\end{tikzpicture}
+
+\subsection*{Description}
+
+\begin{Note}
+\textbf{Conditions} are passed to all write methods
+(and possibly also read) of \textbf{ResourceStore}.
+The store is responsible for validating conditions
+at the right moment,
+and for aborting the modification if validation fails.
+The caller is responsible for writing the validation code.
+
+\columnbreak
+If the store does not know how to validate conditions,
+or if it does not have a~more optimal strategy,
+it can simply call a~generic \textbf{ConditionValidator}
+that knows how to validate conditions.
+It can do this with both eTag and lastModified,
+or try one of them before the other.
+
+\columnbreak
+(The conditions argument \emph{could} be optional;
+ if a~store decides to not support conditional requests,
+ it must throw an error if conditions are passed.)
+
+\end{Note}
+
+\subsection*{Analysis}
+
+\begin{Note}
+Requirements:
+\begin{itemize}
+  \item \emph{(none)}
+\end{itemize}
+
+
+
+\bigskip
+When a~conditional request arrives, implementers must:
+\begin{enumerate}
+  \item call the modification method,
+        passing in the validation code
+  \item have \textbf{ResourceStore} check the conditions
+        at the right time
+\end{enumerate}
+
+\bigskip
+This comes with a~couple of caveats:
+\begin{itemize}
+  \item It assumes that the conditions do not change often.
+  \item For every store implementation,
+        it must be tested whether every method checks the conditions.
+\end{itemize}
+
+\columnbreak
+\null
+
+
+\columnbreak
+\null
+
+\end{Note}
 
 \end{document}
