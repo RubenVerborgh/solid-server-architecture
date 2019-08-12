@@ -178,4 +178,40 @@ and, if desired, support atomicity.
 
 \end{Note}
 
+\section*{ResourceStore and conditional requests}
+\begin{Note}
+With the above,
+we have established that \textbf{ResourceStore}:
+\begin{itemize}
+  \item supports all CRUD requests;
+  \item can support all types of patches efficiently;
+  \item support atomicity
+        (regardless of native support by the back-end).
+\end{itemize}
+
+\columnbreak
+However, the proposed mechanism
+does \emph{not} support conditional requests,
+which must be aborted if the resource
+prior to modification
+does not satisfy certain conditions.
+These are not supported because:
+\begin{itemize}
+  \item \textbf{ResourceStore} cannot abort,
+        because it does not know the conditions.
+  \item Callers of \textbf{ResourceStore} know the conditions,
+        but they cannot check them in an atomic way,
+        since they would not be able to prevent modifications
+        in between the \verb!getRepresentation! call for checking the conditions,
+        and the subsequent modification call.
+\end{itemize}
+
+\columnbreak
+Hence,
+we explore three different extensions to the architecture
+that aim to support conditional requests,
+and analyze their properties.
+
+\end{Note}
+
 \end{document}
