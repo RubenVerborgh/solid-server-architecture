@@ -33,6 +33,10 @@
      \parskip 1em}
   {\end{multicols}}
 
+% Lists
+\usepackage{enumitem}
+\setlist{nosep,topsep=-1em}
+
 % Document metadata
 \title{
   Solid server -- Proposed architecture v1.2.0
@@ -75,11 +79,11 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 
 
 \newcommand\ResourceStoreBody{%
-  + getRepresentation(ResourceIdentifier, RepresentationPreferences) : Promise<Representation>\\
-  + addResource(container : ResourceIdentifier, Representation) : Promise<ResourceIdentifier>\\
-  + setRepresentation(ResourceIdentifier, Representation) : Promise<void>\\
-  + deleteResource(ResourceIdentifier) : Promise<void>\\
-  + modifyResource(ResourceIdentifier, Patch) : Promise<void>\\
+  + getRepresentation(ResourceIdentifier, RepresentationPreferences, Conditions?) : Promise<Representation>\\
+  + addResource(container : ResourceIdentifier, Representation, Conditions?) : Promise<ResourceIdentifier>\\
+  + setRepresentation(ResourceIdentifier, Representation, Conditions?) : Promise<void>\\
+  + deleteResource(ResourceIdentifier, Conditions?) : Promise<void>\\
+  + modifyResource(ResourceIdentifier, Patch, Conditions?) : Promise<void>\\
 }
 
 \section*{Overview of LDP and Access Control}
@@ -305,7 +309,7 @@ non-binding examples of which are shown in the diagram.
 
 \clearpage
 
-\section*{ResourceStore}
+\section*{ResourceStore implementations}
 \begin{tikzpicture}
   \umlinterface{ResourceStore}{}{\ResourceStoreBody}
 
@@ -334,10 +338,10 @@ non-binding examples of which are shown in the diagram.
   \umlimpl[anchor1=west,anchor2=north east]{KeyValueStore}{ResourceStore}
 
   \umlsimpleclass[right=1 of KeyValueStore.north east]{RedisStore}
-  \umlinherit{RedisStore}{KeyValueStore}
+  \umlinherit[anchor1=west]{RedisStore}{KeyValueStore}
 
   \umlsimpleclass[right=1 of KeyValueStore.east]{CassandraStore}
-  \umlinherit{CassandraStore}{KeyValueStore}
+  \umlinherit[anchor1=west]{CassandraStore}{KeyValueStore}
 
 
   % TripleStore
@@ -355,11 +359,11 @@ non-binding examples of which are shown in the diagram.
 
   % RepresentationConvertor
 
-  \umlclass[below=1 of TripleStore.south west,anchor=north west]{RepresentationConvertingStore}{
+  \umlclass[below=1 of TripleStore.south west,anchor=north]{RepresentationConvertingStore}{
     - source : ResourceStore\\
     - convertors : Array<RepresentationConvertor>\\
   }{}
-  \umlimpl[anchor1=west,anchor2=-30,geometry=-|]{RepresentationConvertingStore}{ResourceStore}
+  \umlimpl[anchor1=west,anchor2=-18,geometry=-|]{RepresentationConvertingStore}{ResourceStore}
 
   \umlinterface[right=1 of RepresentationConvertingStore]{RepresentationConvertor}{}{
     + supports(Representation, RepresentationPreferences): Promise<boolean>\\
@@ -373,8 +377,8 @@ non-binding examples of which are shown in the diagram.
   \umlclass[below=1 of RepresentationConvertingStore.south west,anchor=north west]{CompositeResourceStore}{
     - sources : Map<UrlPattern, ResouceStore>\\
   }{}
-  \umlimpl[anchor1=173,anchor2=-40,geometry=-|]{CompositeResourceStore}{ResourceStore}
-  \umlunicompo[mult=*,anchor1=187,anchor2=-60,geometry=-|]{CompositeResourceStore}{ResourceStore}
+  \umlimpl[anchor1=173,anchor2=-22,geometry=-|]{CompositeResourceStore}{ResourceStore}
+  \umlunicompo[mult=*,anchor1=190,anchor2=-28,geometry=-|]{CompositeResourceStore}{ResourceStore}
 
 \end{tikzpicture}
 
@@ -410,6 +414,130 @@ each answering to different URL patterns.
 This mechanism \emph{could} be used
 also to serve large files like images,
 or static assets such as apps or scripts.
+\end{Note}
+
+\section*{ResourceStore atomicity and conditional requests}
+\begin{tikzpicture}
+  \umlinterface{ResourceStore}{}{\ResourceStoreBody}
+
+  \umlclass[below=1 of ResourceStore]{Conditions}{
+    + matchesEtag : string[]\\
+    + notMatchesEtag : string[]\\
+    + modifiedSince: date?\\
+    + unmodifiedSince: date?\\
+  }{
+    + matches(metadata : RepresentationMetadata): boolean\\
+    + matches(eTag : string?, lastModified : date?): boolean\\
+  }
+  \umldep[arg=uses,pos=0.5]{ResourceStore}{Conditions}
+
+  \umlinterface[right=2 of ResourceStore.north east, anchor=south west]{AtomicResourceStore}{}{
+  }
+  \umlimpl{AtomicResourceStore}{ResourceStore}
+
+  \umlclass[right=2 of ResourceStore.east]{LockingResourceStore}{
+    - ResourceStore source\\
+    - ResourceLocker locks\\
+  }{
+  }
+  \umlimpl{LockingResourceStore}{ResourceStore}
+  \umlimpl{LockingResourceStore}{AtomicResourceStore}
+  \umlunicompo[mult=1,anchor1=202,anchor2=-6]{LockingResourceStore}{ResourceStore}
+
+  \umlinterface[right=2 of LockingResourceStore.east]{ResourceLocker}{
+  }{
+    + acquire(ResourceIdentifier) : Promise<Lock>\\
+  }
+  \umluniaggreg[mult=1]{LockingResourceStore}{ResourceLocker}
+
+  \umlinterface[below=1 of ResourceLocker.south]{Lock}{
+  }{
+    + release() : Promise<void>\\
+  }
+  \umldep[arg=creates,pos=0.5]{ResourceLocker}{Lock}
+
+\end{tikzpicture}
+
+\bigskip
+
+\begin{Note}
+The \textbf{ResourceStore} interface has been designed
+such that each of its methods \emph{can} be implemented
+in an atomic way:
+for each CRUD operation,
+only one dedicated method needs to be called.
+A~fifth method enables the optimization of partial updates
+with \verb!PATCH!.
+It is up to the implementer of the interface
+to (not) make an implementation atomic.
+For some implementations,
+such as triple stores or other database back-ends,
+atomicity is a~given.
+We~\emph{could} explicitly indicate atomicity
+by having such implementations
+implement the (otherwise empty) \textbf{AtomicResourceStore} interface
+as a~tag.
+
+\columnbreak
+
+Some back-ends are not atomic by themselves,
+such as a~file system,
+where a~read+append sequence could unknowingly
+be interrupted by a~write
+that thereby breaks atomicity.
+Instead of having to implement
+a~dedicated locking mechanism for every non-atomic back-end,
+these stores can be made atomic
+by decorating them with a~\textbf{LockingResourceStore}.
+This class wraps another \textbf{ResourceStore}
+and adds a~locking mechanism,
+of which different implementations can exist.
+
+\columnbreak
+
+It is important to emphasize
+that atomicity is \emph{not} the only reason
+for the design of the \textbf{ResourceStore} interface.
+Another consideration is \verb!modifyResource!,
+which allows us to optimize modifications in a~backend-specific way.
+Since we expect small modifications to larger resources
+to be a~common for Solid apps,
+we need to be able to handle those efficiently.
+\verb!modifyResource! gives implementations the freedom
+on how to apply patches,
+such that they can pick whichever option is most efficient
+for a~given patch
+and, if desired, support atomicity.
+
+\end{Note}
+
+\begin{Note}
+The \textbf{Conditions} class
+represents the conditions of an HTTP conditional request.
+It~is passed to all write methods
+(and possibly also read) of \textbf{ResourceStore}.
+The~store is responsible for validating conditions
+at the right moment
+and, should validation fail,
+for aborting the modification by throwing an error.
+
+\columnbreak
+If the store knows how to validate conditions,
+it can use the raw exposed fields on \textbf{Conditions}.
+If it does not,
+it can call \verb!matches!
+with both ETag and the last modified date,
+or try one of them before the other.
+Finally,
+if it knows about neither ETag nor last modified date,
+it can simply pass the metadata as a~whole.
+
+\columnbreak
+The conditions argument is optional,
+and only passed for conditional requests.
+If a~store decides not to support conditional requests,
+it must throw an error if~conditions are passed.
+
 \end{Note}
 
 \clearpage
