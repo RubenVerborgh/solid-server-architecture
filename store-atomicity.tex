@@ -261,7 +261,7 @@ can happen in the meantime.
 \subsection*{Analysis}
 
 \begin{Note}
-Requirements:
+Additional knowledge required by existing components:
 \begin{itemize}
   \item The caller knows how to validate request conditions.
 
@@ -365,7 +365,7 @@ The caller is responsible for writing the validation code.
 \subsection*{Analysis}
 
 \begin{Note}
-Requirements:
+Additional knowledge required by existing components:
 \begin{itemize}
   \item The caller knows how to validate request conditions,
         given metadata.
@@ -412,37 +412,38 @@ This comes with a~couple of caveats
   + modifyResource(ResourceIdentifier, Patch, Conditions) : Promise<void>\\
   }
 
-  \umlinterface[right=2 of ResourceStore]{Conditions}{
+  \umlclass[right=2 of ResourceStore]{Conditions}{
     + matchesEtag : string[]\\
     + notMatchesEtag : string[]\\
     + modifiedSince: date?\\
     + unmodifiedSince: date?\\
-  }{}
-  \umldep[arg=uses,pos=0.5]{ResourceStore}{Conditions}
-
-  \umlclass[below=1 of Conditions]{ConditionValidator}{}{
-  + matches(conditions : Conditions, eTag : string?, lastModified : date?): boolean\\
+  }{
+    + matches(metadata : RepresentationMetadata): boolean\\
+    + matches(eTag : string?, lastModified : date?): boolean\\
   }
-  \umldep[arg=uses,pos=0.5]{ConditionValidator}{Conditions}
+  \umldep[arg=uses,pos=0.5]{ResourceStore}{Conditions}
 \end{tikzpicture}
 
 \subsection*{Description}
 
 \begin{Note}
-\textbf{Conditions} are passed to all write methods
+The \textbf{Conditions} themselves
+are passed to all write methods
 (and possibly also read) of \textbf{ResourceStore}.
 The store is responsible for validating conditions
 at the right moment,
 and for aborting the modification if validation fails.
-The caller is responsible for writing the validation code.
 
 \columnbreak
-If the store does not know how to validate conditions,
-or if it does not have a~more optimal strategy,
-it can simply call a~generic \textbf{ConditionValidator}
-that knows how to validate conditions.
-It can do this with both eTag and lastModified,
+If the store knows how to validate conditions,
+it can use the raw exposed fields on \textbf{Conditions}.
+If it does not,
+it can call \verb!matches!
+with both ETag and the last modified date,
 or try one of them before the other.
+Finally,
+if it knows about neither ETag nor last modified date,
+it can simply pass the metadata as a~whole.
 
 \columnbreak
 (The conditions argument \emph{could} be optional;
@@ -454,14 +455,9 @@ or try one of them before the other.
 \subsection*{Analysis}
 
 \begin{Note}
-Requirements:
-\begin{itemize}
-  \item \emph{(none)}
-\end{itemize}
+Additional knowledge required by existing components:
+\\*\emph{(none)}
 
-
-
-\bigskip
 When a~conditional request arrives, implementers must:
 \begin{enumerate}
   \item call the modification method,
