@@ -190,9 +190,9 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 
 \begin{umlpackage}{Authorization}
   \umlinterface[below=4.5 of CredentialsExtractor]{Authorizer}{}{
-    + hasPermissions(Credentials,
-                     ResourceIdentifier,\\*
-                     PermissionSet) : Promise<boolean>\\
+    + ensurePermissions(Credentials,
+                        ResourceIdentifier,\\*
+                        PermissionSet) : Promise<void>\\
   }
   \umldep[arg=uses,pos=0.3]{Authorizer}{Credentials}
   \umluniaggreg[mult=1,geometry=|-,weight=0.6]{LdpHandler}{Authorizer}
