@@ -12,6 +12,9 @@
 \usepackage{microtype}
 \parindent 0pt
 
+\newcommand\component[1]{\mbox{\bf #1}}
+\newcommand\field[1]{\mbox{\tt #1}}
+
 % TikZ
 \usepackage{./tikz-uml}
 \usetikzlibrary{positioning}
@@ -206,7 +209,7 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 
 \section*{Resources and Representations}
 \begin{Note}
-The intention of \textbf{ResourceIdentifier} and \textbf{Representation}
+The intention of \component{ResourceIdentifier} and \component{Representation}
 is to capture the REST notion of a~resource and its representation.
 In~the~case of a~photograph,
 the resource is the photograph itself,
@@ -219,17 +222,17 @@ into Turtle or specific framings of~JSON-LD.
 \columnbreak
 
 For all practical purposes,
-\textbf{ResourceIdentifier} can just be a~\textbf{URL};
+\component{ResourceIdentifier} can just be a~\component{URL};
 the terminology is mainly used to emphasize
 the resource/representation notion of REST.
-Also, there is no \textbf{Resource} class,
+Also, there is no \component{Resource} class,
 because resources are always manipulated through representations in REST,
 so we only need to \emph{identify} resources,
 and only deal with them through their representations.
 \columnbreak
 
 Crucially, as the diagram below shows,
-the \textbf{Representation} interface
+the \component{Representation} interface
 can have vastly different underlying in-memory structures,
 such as strings, binary streams, RDF streams, etc.
 So they can be photographs as well as RDF streams,
@@ -279,13 +282,13 @@ and RDF-oblivious when they do~not.
 \bigskip
 
 \begin{Note}
-The \textbf{dataType} field returns the name of the class
-that elements of the \textbf{data} readable stream will have,
+The \field{dataType} field returns the name of the class
+that elements of the \field{data} readable stream will have,
 for instance,
-\verb!Buffer! or \verb!Quad!.
+\component{Buffer} or \component{Quad}.
 \columnbreak
 
-Based on the \textbf{dataType} and \textbf{metadata} fields,
+Based on the \field{dataType} and \field{metadata} fields,
 other components can decide whether or not the representation
 is acceptable to the user agent,
 and, if this is not the case,
@@ -293,10 +296,10 @@ convert to a~format that is.
 For instance,
 a~\verb!text/turtle! stream is acceptable
 for a~user agent that requested \verb!text/*!,
-whereas a~\verb!Readable<Quad>! will still require serialization.
+whereas a~\component{Readable<Quad>} will still require serialization.
 
 \columnbreak
-The \textbf{RepresentationMetadata} interface
+The \component{RepresentationMetadata} interface
 essentially exposes a~set of RDF triples
 that describe properties about the representation.
 For convenience,
@@ -383,8 +386,8 @@ non-binding examples of which are shown in the diagram.
 \bigskip
 
 \begin{Note}
-A~\textbf{ResourceStore} will \emph{try} to satisfy
-any \textbf{RepresentationPreferences} passed to it,
+A~\component{ResourceStore} will \emph{try} to satisfy
+any \component{RepresentationPreferences} passed to it,
 but only if this is reasonably easy for the store in question.
 For instance, a~SPARQL endpoint can typically
 generate N-Triples as easily as Turtle,
@@ -396,17 +399,17 @@ so it is fine to always serve that single representation,
 regardless of client preferences.
 \columnbreak
 
-Optionally, a~\textbf{RepresentationConvertingStore} can be used
+Optionally, a~\component{RepresentationConvertingStore} can be used
 to satisfy client preferences more accurately.
-It has access to \textbf{RepresentationConvertor} instances,
+It has access to \component{RepresentationConvertor} instances,
 which could (for instance) convert a~stream of quads
 into Turtle or a~specific JSON-LD frame.
-It can decorate any existing \textbf{ResourceStore}
+It can decorate any existing \component{ResourceStore}
 to extend it with more kinds of representations
 such as different content types.
 \columnbreak
 
-A~\textbf{CompositeResourceStore} can be used
+A~\component{CompositeResourceStore} can be used
 to have multiple back-ends on one pod,
 each answering to different URL patterns.
 This mechanism \emph{could} be used
@@ -459,7 +462,7 @@ or static assets such as apps or scripts.
 \bigskip
 
 \begin{Note}
-The \textbf{ResourceStore} interface has been designed
+The \component{ResourceStore} interface has been designed
 such that each of its methods \emph{can} be implemented
 in an atomic way:
 for each CRUD operation,
@@ -473,7 +476,7 @@ such as triple stores or other database back-ends,
 atomicity is a~given.
 We~\emph{could} explicitly indicate atomicity
 by having such implementations
-implement the (otherwise empty) \textbf{AtomicResourceStore} interface
+implement the (otherwise empty) \component{AtomicResourceStore} interface
 as a~tag.
 
 \columnbreak
@@ -486,8 +489,8 @@ that thereby breaks atomicity.
 Instead of having to implement
 a~dedicated locking mechanism for every non-atomic back-end,
 these stores can be made atomic
-by decorating them with a~\textbf{LockingResourceStore}.
-This class wraps another \textbf{ResourceStore}
+by decorating them with a~\component{LockingResourceStore}.
+This class wraps another \component{ResourceStore}
 and adds a~locking mechanism,
 of which different implementations can exist.
 
@@ -495,13 +498,13 @@ of which different implementations can exist.
 
 It is important to emphasize
 that atomicity is \emph{not} the only reason
-for the design of the \textbf{ResourceStore} interface.
-Another consideration is \verb!modifyResource!,
+for the design of the \component{ResourceStore} interface.
+Another consideration is \field{modifyResource},
 which allows us to optimize modifications in a~backend-specific way.
 Since we expect small modifications to larger resources
 to be a~common for Solid apps,
 we need to be able to handle those efficiently.
-\verb!modifyResource! gives implementations the freedom
+\field{modifyResource} gives implementations the freedom
 on how to apply patches,
 such that they can pick whichever option is most efficient
 for a~given patch
@@ -510,10 +513,10 @@ and, if desired, support atomicity.
 \end{Note}
 
 \begin{Note}
-The \textbf{Conditions} class
+The \component{Conditions} class
 represents the conditions of an HTTP conditional request.
 It~is passed to all write methods
-(and possibly also read) of \textbf{ResourceStore}.
+(and possibly also read) of \component{ResourceStore}.
 The~store is responsible for validating conditions
 at the right moment
 and, should validation fail,
@@ -521,14 +524,14 @@ for aborting the modification by throwing an error.
 
 \columnbreak
 If the store knows how to validate conditions,
-it can use the raw exposed fields on \textbf{Conditions}.
+it can use the raw exposed fields on \component{Conditions}.
 If it does not,
-it can call \verb!matches!
+it can call \field{modifyResource}
 with both ETag and the last modified date,
 or try one of them before the other.
 Finally,
 if it knows about neither ETag nor last modified date,
-it can simply pass the metadata as a~whole.
+it can pass the metadata as a~whole.
 
 \columnbreak
 The conditions argument is optional,
@@ -542,10 +545,10 @@ it must throw an error if~conditions are passed.
 
 \section*{Patch}
 \begin{Note}
-A~\textbf{Patch} contains a~description
+A~\component{Patch} contains a~description
 of changes to be made to a~certain
 (representation of a) resource.
-The \textbf{Patch} object itself
+The \component{Patch} object itself
 does not know how to \emph{apply} this patch;
 it is merely a~data object.
 \columnbreak
@@ -582,21 +585,21 @@ it is merely a~data object.
 \end{tikzpicture}
 
 \begin{Note}
-A~\textbf{ResourceStore} \emph{might} have knowledge
+A~\component{ResourceStore} \emph{might} have knowledge
 on how to apply certain types of patches itself.
 For instance, file-based stores
-might have built-in support for \textbf{LineBasedPatch},
+might have built-in support for \component{LineBasedPatch},
 and SPARQL endpoints or in-memory RDF stores
-likely have built-in support for \textbf{GraphPatternPatch}.
+likely have built-in support for \component{GraphPatternPatch}.
 \columnbreak
 
-There is case to be made for a~\emph{Patcher} interface
+There is case to be made for a~\component{Patcher} interface
 for objects that can apply all patches of a~certain type
 to certain representations.
 For instance,
-a~\textbf{GraphPatternPatch} could be applied
+a~\component{GraphPatternPatch} could be applied
 to RDF graphs serialized as documents,
-by a~\emph{GraphPatternPatcher}
+by a~\component{GraphPatternPatcher}
 that operates independently of any specific store.
 
 \columnbreak
@@ -636,7 +639,7 @@ to ACLs that can affect a~given document.
 
 \columnbreak
 To this end,
-the \textbf{AclCache} will wrap around a~\textbf{ResourceStore}
+the \component{AclCache} will wrap around a~\component{ResourceStore}
 and intercept all write requests,
 such that it can invalidate parts of its cache
 when writes to ACL~documents arrive.
