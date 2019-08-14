@@ -604,4 +604,46 @@ that operates independently of any specific store.
 \null
 \end{Note}
 
+\clearpage
+
+\section*{ACL caching}
+\begin{tikzpicture}
+  \umlclass{AclBasedAuthorizer}{
+    - source : AclCache\\
+  }{
+    + ensurePermissions(Credentials,
+                        ResourceIdentifier,\\*
+                        PermissionSet) : Promise<void>\\
+  }
+
+  \umlclass[right=2 of AclBasedAuthorizer]{AclCache}{
+    - source : ResourceStore\\
+  }{}
+  \umldep[arg=uses,pos=0.5]{AclBasedAuthorizer}{AclCache}
+
+  \umlinterface[below=1.5 of AclCache]{ResourceStore}{}{}
+  \umlimpl{AclCache}{ResourceStore}
+  \umlunicompo[mult=1,anchor1=-130,anchor2=128]{AclCache}{ResourceStore}
+
+\end{tikzpicture}
+
+\begin{Note}
+Since ACLs will be used frequently,
+we need a~mechanism for caching them.
+Importantly, we need a~way to \emph{invalidate} the cache
+every time a~write operation happens
+to ACLs that can affect a~given document.
+
+\columnbreak
+To this end,
+the \textbf{AclCache} will wrap around a~\textbf{ResourceStore}
+and intercept all write requests,
+such that it can invalidate parts of its cache
+when writes to ACL~documents arrive.
+
+\columnbreak
+\null
+
+\end{Note}
+
 \end{document}
