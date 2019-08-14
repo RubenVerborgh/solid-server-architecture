@@ -609,6 +609,55 @@ that operates independently of any specific store.
 
 \clearpage
 
+\section*{Quota}
+\begin{tikzpicture}
+  \umlsimpleclass[]{AdministrationApi}{}{}
+  \umlinterface[right=2 of AdministrationApi]{HttpHandler}{}{}
+  \umlimpl{AdministrationApi}{HttpHandler}
+
+  \umlinterface[below=2 of AdministrationApi]{SizeReporter}{}{
+    + getSize(ResourceIdentifier) : Promise<Number>\\
+  }
+  \umldep[arg=uses,pos=0.5]{AdministrationApi}{SizeReporter}
+
+  \umlclass[right=2 of SizeReporter]{SizeCache}{
+    - source : ResourceStore\\
+    - reporter : SizeReporter\\
+  }{}
+  \umlimpl{SizeCache}{SizeReporter}
+  \umlunicompo[mult=1,anchor1=202,anchor2=-12]{SizeCache}{SizeReporter}
+
+  \umlinterface[below=1.5 of SizeCache]{ResourceStore}{}{}
+  \umlimpl{SizeCache}{ResourceStore}
+  \umlunicompo[mult=1,anchor1=-124,anchor2=128]{SizeCache}{ResourceStore}
+
+  \umlsimpleclass[below=2 of SizeReporter]{FileSystemStore}
+  \umlimpl{FileSystemStore}{ResourceStore}
+  \umlimpl{FileSystemStore}{SizeReporter}
+
+\end{tikzpicture}
+
+\begin{Note}
+Storage quota can be retrieved
+through the \component{AdministrationApi},
+which is an independent \component{HttpHandler}
+that accesses a~\component{SizeReporter}.
+The \component{SizeReporter} interface
+can be implemented by stores such as \component{FileSystemStore}.
+
+\columnbreak
+Since computing quota can be expensive,
+a~\component{SizeCache}
+could maintain quota for subpaths,
+which it invalidates upon write operations.
+
+\columnbreak
+\null
+
+\end{Note}
+
+\clearpage
+
 \section*{ACL caching}
 \begin{tikzpicture}
   \umlclass{AclBasedAuthorizer}{
