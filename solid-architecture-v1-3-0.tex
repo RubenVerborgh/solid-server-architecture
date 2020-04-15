@@ -107,19 +107,19 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 \end{umlpackage}
 
 \begin{umlpackage}[y=-5]{LDP}
-  \umlclass{LdpHandler}{}{
+  \umlclass{AuthenticatedLdpHandler}{}{
   }
-  \umlimpl{LdpHandler}{HttpHandler}
+  \umlimpl{AuthenticatedLdpHandler}{HttpHandler}
 
-  \begin{umlpackage}{HTTP}
-    \umlsimpleclass[right=1 of LdpHandler.north east]{ResponseWriter}
-    \umluniaggreg[mult=1,above,anchor1=10,anchor2=west,geometry=-|-,arm1=0.5]{LdpHandler}{ResponseWriter}
+  \begin{umlpackage}[x=7]{HTTP}
+    \umlsimpleclass[right=1 of AuthenticatedLdpHandler.north east]{ResponseWriter}
+    \umluniaggreg[mult=1,above,anchor1=10,anchor2=west,geometry=-|-,arm1=0.5]{AuthenticatedLdpHandler}{ResponseWriter}
     \umlsimpleclass[right=2 of ResponseWriter.east,anchor=west]{HttpResponse}
     \umldep[arg=writes,pos=0.5,below]{ResponseWriter}{HttpResponse}
 
     \umlclass[below=1 of ResponseWriter.south east,anchor=north east]{RequestParser}{}{
     }
-    \umluniaggreg[mult=1,below,anchor1=-10,anchor2=west,geometry=-|-,arm1=0.5]{LdpHandler}{RequestParser}
+    \umluniaggreg[mult=1,below,anchor1=-10,anchor2=west,geometry=-|-,arm1=0.5]{AuthenticatedLdpHandler}{RequestParser}
 
     \umlsimpleclass[right=2 of RequestParser.east,anchor=south west]{TargetExtractor}
     \umluniaggreg[arg2=1,above,anchor1=north east,anchor2=west,geometry=-|-]{RequestParser}{TargetExtractor}
@@ -140,12 +140,12 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
   \end{umlpackage}
 
 
-  \begin{umlpackage}[x=6,y=-8]{Operations}
+  \begin{umlpackage}[x=7,y=-8]{Operations}
     \umlinterface[]{OperationHandler}{}{
       + canHandle(Operation) : Promise<boolean>\\
       + handle(Operation) : Promise<void>\\
     }
-    \umluniaggreg[anchor1=310,mult=1,geometry=|-]{LdpHandler}{OperationHandler}
+    \umluniaggreg[anchor1=310,mult=1,geometry=|-]{AuthenticatedLdpHandler}{OperationHandler}
 
     \umlsimpleclass[above=1 of OperationHandler]{Operation}
     \umldep[arg=uses,pos=0.5]{OperationHandler}{Operation}
@@ -175,10 +175,10 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 \end{umlpackage}
 
 \begin{umlpackage}{Authentication}
-  \umlinterface[left=2 of LdpHandler.west]{CredentialsExtractor}{}{
+  \umlinterface[left=2 of AuthenticatedLdpHandler.west]{CredentialsExtractor}{}{
     + extractCredentials(HttpRequest) : Promise<Credentials>\\
   }
-  \umluniaggreg[mult=1]{LdpHandler}{CredentialsExtractor}
+  \umluniaggreg[mult=1]{AuthenticatedLdpHandler}{CredentialsExtractor}
 
   \umlsimpleclass[below=1 of CredentialsExtractor]{Credentials}
   \umldep[arg=creates,pos=0.5]{CredentialsExtractor}{Credentials}
@@ -191,7 +191,7 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
                         PermissionSet) : Promise<void>\\
   }
   \umldep[arg=uses,pos=0.3]{Authorizer}{Credentials}
-  \umluniaggreg[anchor1=230,mult=1,geometry=|-,weight=0.6]{LdpHandler}{Authorizer}
+  \umluniaggreg[anchor1=230,mult=1,geometry=|-,weight=0.6]{AuthenticatedLdpHandler}{Authorizer}
 
   \umlsimpleclass[below=1 of Authorizer]{AclBasedAuthorizer}
   \umlimpl{AclBasedAuthorizer}{Authorizer}
