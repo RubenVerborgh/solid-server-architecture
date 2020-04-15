@@ -78,6 +78,9 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
                 possibly with a~character encoding.
 \end{description}
 
+\clearpage
+
+\section*{Overview of LDP and Access Control}
 
 \newcommand\ResourceStoreBody{%
   + getRepresentation(ResourceIdentifier, RepresentationPreferences, Conditions?) : Promise<Representation>\\
@@ -87,13 +90,12 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
   + modifyResource(ResourceIdentifier, Patch, Conditions?) : Promise<void>\\
 }
 
-\section*{Overview of LDP and Access Control}
 \begin{tikzpicture}
 
 \begin{umlpackage}{HTTP}
   \umlinterface[]{HttpHandler}{}{
     + canHandle(HttpRequest) : Promise<boolean>\\
-    + handle(HttpRequest, HttpResponse) : void\\
+    + handle(HttpRequest, HttpResponse) : Promise<void>\\
   }
 
   \umlclass[right=1 of HttpHandler]{HttpServer}{}{
@@ -106,7 +108,7 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 
 \begin{umlpackage}[y=-4.5]{LDP}
   \umlclass{LdpHandler}{}{
-    + LdpHandler(OperationFactory)\\
+    + LdpHandler(OperationHandler)\\
   }
   \umlimpl{LdpHandler}{HttpHandler}
 
@@ -143,40 +145,32 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 
 
   \begin{umlpackage}[x=6,y=-4]{Operations}
-    \umlclass[]{OperationFactory}{}{
-      + OperationFactory(ResourceStore)\\
-      + createOperation(method : string, ResourceIdentifier,\\*
-                        RepresentationPreferences, \ldots) : Operation\\
+    \umlinterface[]{OperationHandler}{}{
+      + canHandle(ParsedRequest) : Promise<boolean>\\
+      + handle(ParsedRequest) : Promise<void>\\
     }
-    \umluniaggreg[mult=1,geometry=|-]{LdpHandler}{OperationFactory}
+    \umluniaggreg[mult=1,geometry=|-]{LdpHandler}{OperationHandler}
 
-    \umlinterface[below=1 of OperationFactory]{Operation}{
-      + target : ResourceIdentifier\\
-      + requestBody : Representation?\\
-      + preferences : RepresentationPreferences\\
-      + requiredPermissions : PermissionSet\\
-    }{
-      + execute() : Promise<ResponseDescription>\\
-    }
-    \umldep[arg=creates,pos=0.5]{OperationFactory}{Operation}
+    \umlsimpleclass[right=1 of OperationHandler.north east,anchor=north west]{CompositeOperationHandler}
+    \umlimpl[anchor1=177,anchor2=14]{CompositeOperationHandler}{OperationHandler}
+    \umlunicompo[anchor1=182,anchor2=10]{CompositeOperationHandler}{OperationHandler}
 
-    \umlsimpleclass[right=1 of Operation.north east,anchor=north west]{GetOperation}
-    \umlsimpleclass[below=.25 of GetOperation.south west,anchor=north west]{PostOperation}
-    \umlsimpleclass[below=.25 of PostOperation.south west,anchor=north west]{PutOperation}
-    \umlsimpleclass[below=.25 of PutOperation.south west,anchor=north west]{PatchOperation}
-    \umlimpl[anchor1=west]{GetOperation}{Operation}
-    \umlimpl[anchor1=west]{PostOperation}{Operation}
-    \umlimpl[anchor1=west]{PutOperation}{Operation}
-    \umlimpl[anchor1=west]{PatchOperation}{Operation}
-
+    \umlsimpleclass[below=.25 of CompositeOperationHandler.south west,anchor=north west]{GetOperationHandler}
+    \umlsimpleclass[below=.25 of GetOperationHandler.south west,anchor=north west]{PostOperationHandler}
+    \umlsimpleclass[below=.25 of PostOperationHandler.south west,anchor=north west]{PutOperationHandler}
+    \umlsimpleclass[below=.25 of PutOperationHandler.south west,anchor=north west]{PatchOperationHandler}
+    \umlimpl[anchor1=west]{GetOperationHandler}{OperationHandler}
+    \umlimpl[anchor1=west]{PostOperationHandler}{OperationHandler}
+    \umlimpl[anchor1=west]{PutOperationHandler}{OperationHandler}
+    \umlimpl[anchor1=west]{PatchOperationHandler}{OperationHandler}
   \end{umlpackage}
 \end{umlpackage}
 
 \begin{umlpackage}{Storage}
-  \umlinterface[below=2.25 of Operation]{ResourceStore}{}{
+  \umlinterface[below=4.25 of OperationHandler]{ResourceStore}{}{
     \ResourceStoreBody
   }
-  \umluniaggreg[mult=1]{Operation}{ResourceStore}
+  \umluniaggreg[mult=1]{OperationHandler}{ResourceStore}
 \end{umlpackage}
 
 \begin{umlpackage}{Authentication}
@@ -190,7 +184,7 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 \end{umlpackage}
 
 \begin{umlpackage}{Authorization}
-  \umlinterface[below=4.5 of CredentialsExtractor]{Authorizer}{}{
+  \umlinterface[below=4 of CredentialsExtractor]{Authorizer}{}{
     + ensurePermissions(Credentials,
                         ResourceIdentifier,\\*
                         PermissionSet) : Promise<void>\\
