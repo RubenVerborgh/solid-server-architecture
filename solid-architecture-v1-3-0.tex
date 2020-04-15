@@ -92,7 +92,7 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 
 \begin{tikzpicture}
 
-\begin{umlpackage}{HTTP}
+\begin{umlpackage}{Server}
   \umlinterface[]{HttpHandler}{}{
     + canHandle(HttpRequest) : Promise<boolean>\\
     + handle(HttpRequest, HttpResponse) : Promise<void>\\
@@ -106,56 +106,55 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
   \umluniaggreg[mult=*]{HttpServer}{HttpHandler}
 \end{umlpackage}
 
-\begin{umlpackage}[y=-4.5]{LDP}
+\begin{umlpackage}[y=-5]{LDP}
   \umlclass{LdpHandler}{}{
-    + LdpHandler(OperationHandler)\\
   }
   \umlimpl{LdpHandler}{HttpHandler}
 
+  \begin{umlpackage}{HTTP}
+    \umlsimpleclass[right=1 of LdpHandler.north east]{ResponseWriter}
+    \umluniaggreg[mult=1,above,anchor1=10,anchor2=west,geometry=-|-,arm1=0.5]{LdpHandler}{ResponseWriter}
+    \umlsimpleclass[right=2 of ResponseWriter.east,anchor=west]{HttpResponse}
+    \umldep[arg=writes,pos=0.5,below]{ResponseWriter}{HttpResponse}
 
-  \umlsimpleclass[right=2 of LdpHandler.north east,anchor=south west]{TargetExtractor}
-  \umluniaggreg[mult=1,anchor2=west]{LdpHandler}{TargetExtractor}
-
-  \umlsimpleclass[right=2 of TargetExtractor]{ResourceIdentifier}
-  \umldep[arg=creates,pos=0.5]{TargetExtractor}{ResourceIdentifier}
-
-
-  \umlsimpleclass[below=0.25 of TargetExtractor.south east,anchor=north east]{BodyParser}
-  \umluniaggreg[mult=*,anchor2=west]{LdpHandler}{BodyParser}
-
-  \umlsimpleclass[below=0.25 of ResourceIdentifier.south west,anchor=north west]{Representation}
-  \umldep[arg=creates,pos=0.5]{BodyParser}{Representation}
-
-  \umlsimpleclass[right=1 of Representation]{Patch}
-  \umlinherit{Patch}{Representation}
-
-
-  \umlsimpleclass[below=0.25 of BodyParser.south east,anchor=north east]{PreferenceParser}
-  \umluniaggreg[mult=1,anchor2=west]{LdpHandler}{PreferenceParser}
-
-  \umlsimpleclass[below=0.25 of Representation.south west,anchor=north west]{RepresentationPreferences}
-  \umldep[arg=creates,pos=0.5]{PreferenceParser}{RepresentationPreferences}
-
-
-  \umlsimpleclass[below=0.25 of PreferenceParser.south east,anchor=north east]{ResponseWriter}
-  \umluniaggreg[mult=1,anchor1=south east,anchor2=west]{LdpHandler}{ResponseWriter}
-
-  \umlsimpleclass[below=0.25 of RepresentationPreferences.south west,anchor=north west]{HttpResponse}
-  \umldep[arg=writes,pos=0.5]{ResponseWriter}{HttpResponse}
-
-
-  \begin{umlpackage}[x=6,y=-4]{Operations}
-    \umlinterface[]{OperationHandler}{}{
-      + canHandle(ParsedRequest) : Promise<boolean>\\
-      + handle(ParsedRequest) : Promise<void>\\
+    \umlclass[below=1 of ResponseWriter.south east,anchor=north east]{RequestParser}{}{
     }
-    \umluniaggreg[mult=1,geometry=|-]{LdpHandler}{OperationHandler}
+    \umluniaggreg[mult=1,below,anchor1=-10,anchor2=west,geometry=-|-,arm1=0.5]{LdpHandler}{RequestParser}
 
-    \umlsimpleclass[right=1 of OperationHandler.north east,anchor=north west]{CompositeOperationHandler}
+    \umlsimpleclass[right=2 of RequestParser.east,anchor=south west]{TargetExtractor}
+    \umluniaggreg[arg2=1,above,anchor1=north east,anchor2=west,geometry=-|-]{RequestParser}{TargetExtractor}
+    \umlsimpleclass[right=2 of TargetExtractor]{ResourceIdentifier}
+    \umldep[arg=creates,pos=0.5]{TargetExtractor}{ResourceIdentifier}
+
+    \umlsimpleclass[below=0.25 of TargetExtractor.south east,anchor=north east]{BodyParser}
+    \umluniaggreg[mult=*,anchor1=east,anchor2=west,geometry=-|-]{RequestParser}{BodyParser}
+    \umlsimpleclass[below=0.25 of ResourceIdentifier.south west,anchor=north west]{Representation}
+    \umldep[arg=creates,pos=0.5]{BodyParser}{Representation}
+    \umlsimpleclass[right=1 of Representation]{Patch}
+    \umlinherit{Patch}{Representation}
+
+    \umlsimpleclass[below=0.25 of BodyParser.south east,anchor=north east]{PreferenceParser}
+    \umluniaggreg[mult=1,anchor1=south east,anchor2=west,geometry=-|-]{RequestParser}{PreferenceParser}
+    \umlsimpleclass[below=0.25 of Representation.south west,anchor=north west]{RepresentationPreferences}
+    \umldep[arg=creates,pos=0.5]{PreferenceParser}{RepresentationPreferences}
+  \end{umlpackage}
+
+
+  \begin{umlpackage}[x=6,y=-8]{Operations}
+    \umlinterface[]{OperationHandler}{}{
+      + canHandle(Operation) : Promise<boolean>\\
+      + handle(Operation) : Promise<void>\\
+    }
+    \umluniaggreg[anchor1=310,mult=1,geometry=|-]{LdpHandler}{OperationHandler}
+
+    \umlsimpleclass[above=1 of OperationHandler]{Operation}
+    \umldep[arg=uses,pos=0.5]{OperationHandler}{Operation}
+
+    \umlsimpleclass[right=1 of OperationHandler.north east,anchor=south west]{CompositeOperationHandler}
     \umlimpl[anchor1=177,anchor2=14]{CompositeOperationHandler}{OperationHandler}
     \umlunicompo[anchor1=182,anchor2=10]{CompositeOperationHandler}{OperationHandler}
 
-    \umlsimpleclass[below=.25 of CompositeOperationHandler.south west,anchor=north west]{GetOperationHandler}
+    \umlsimpleclass[below=.5  of CompositeOperationHandler.south west,anchor=north west]{GetOperationHandler}
     \umlsimpleclass[below=.25 of GetOperationHandler.south west,anchor=north west]{PostOperationHandler}
     \umlsimpleclass[below=.25 of PostOperationHandler.south west,anchor=north west]{PutOperationHandler}
     \umlsimpleclass[below=.25 of PutOperationHandler.south west,anchor=north west]{PatchOperationHandler}
@@ -164,6 +163,8 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
     \umlimpl[anchor1=west]{PutOperationHandler}{OperationHandler}
     \umlimpl[anchor1=west]{PatchOperationHandler}{OperationHandler}
   \end{umlpackage}
+
+  \umldep[arg=creates,pos=0.3,geometry=|-|,arm1=-2.5]{RequestParser}{Operation}
 \end{umlpackage}
 
 \begin{umlpackage}{Storage}
@@ -190,7 +191,7 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
                         PermissionSet) : Promise<void>\\
   }
   \umldep[arg=uses,pos=0.3]{Authorizer}{Credentials}
-  \umluniaggreg[mult=1,geometry=|-,weight=0.6]{LdpHandler}{Authorizer}
+  \umluniaggreg[anchor1=230,mult=1,geometry=|-,weight=0.6]{LdpHandler}{Authorizer}
 
   \umlsimpleclass[below=1 of Authorizer]{AclBasedAuthorizer}
   \umlimpl{AclBasedAuthorizer}{Authorizer}
