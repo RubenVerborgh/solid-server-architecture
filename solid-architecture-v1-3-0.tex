@@ -78,8 +78,6 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
                 possibly with a~character encoding.
 \end{description}
 
-\clearpage
-
 \section*{Overview of LDP and Access Control}
 
 \newcommand\ResourceStoreBody{%
@@ -117,7 +115,7 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
     \umlsimpleclass[right=2 of ResponseWriter.east,anchor=west]{HttpResponse}
     \umldep[arg=writes,pos=0.5,below]{ResponseWriter}{HttpResponse}
 
-    \umlclass[below=1 of ResponseWriter.south east,anchor=north east]{RequestParser}{}{
+    \umlclass[below=.5 of ResponseWriter.south east,anchor=north east]{RequestParser}{}{
     }
     \umluniaggreg[mult=1,below,anchor1=-10,anchor2=west,geometry=-|-,arm1=0.5]{AuthenticatedLdpHandler}{RequestParser}
 
@@ -140,14 +138,18 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
   \end{umlpackage}
 
 
-  \begin{umlpackage}[x=7,y=-8]{Operations}
+  \begin{umlpackage}[x=7,y=-9]{Operations}
     \umlinterface[]{OperationHandler}{}{
       + canHandle(Operation) : Promise<boolean>\\
       + handle(Operation) : Promise<void>\\
     }
     \umluniaggreg[anchor1=310,mult=1,geometry=|-]{AuthenticatedLdpHandler}{OperationHandler}
 
-    \umlsimpleclass[above=1 of OperationHandler]{Operation}
+    \umlclass[above=1 of OperationHandler]{Operation}{
+      + target : ResourceIdentifier\\
+      + requestBody : Representation?\\
+      + preferences : RepresentationPreferences\\
+    }{}
     \umldep[arg=uses,pos=0.5]{OperationHandler}{Operation}
 
     \umlsimpleclass[right=1 of OperationHandler.north east,anchor=south west]{CompositeOperationHandler}
@@ -164,11 +166,11 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
     \umlimpl[anchor1=west]{PatchOperationHandler}{OperationHandler}
   \end{umlpackage}
 
-  \umldep[arg=creates,pos=0.3,geometry=|-|,arm1=-2.5]{RequestParser}{Operation}
+  \umldep[arg=creates,pos=0.5,left,geometry=|-|,arm1=-1.5]{RequestParser}{Operation}
 \end{umlpackage}
 
 \begin{umlpackage}{Storage}
-  \umlinterface[below=4.25 of OperationHandler]{ResourceStore}{}{
+  \umlinterface[below=4 of OperationHandler]{ResourceStore}{}{
     \ResourceStoreBody
   }
   \umluniaggreg[mult=1]{OperationHandler}{ResourceStore}
