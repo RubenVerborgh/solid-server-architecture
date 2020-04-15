@@ -1,0 +1,701 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+
+% Page setup
+\usepackage[a3paper,landscape,margin=2cm]{geometry}
+
+% Typography
+\usepackage[T1]{fontenc}
+\usepackage[scaled]{berasans}
+\usepackage[scaled]{beramono}
+\renewcommand*\familydefault{\sfdefault}
+\usepackage{microtype}
+\parindent 0pt
+
+\newcommand\component[1]{\mbox{\bf #1}}
+\newcommand\field[1]{\mbox{\tt #1}}
+
+% TikZ
+\usepackage{./tikz-uml}
+\usetikzlibrary{positioning}
+
+% Headings
+\makeatletter
+\def\@maketitle{%
+  {\LARGE\bf\@title\par}
+  \vskip .5em
+  {\large\@author\ -- \@date\par}
+  \vskip 2em
+}
+\makeatother
+
+% Notes
+\usepackage{multicol}
+\newenvironment{Note}
+  {\begin{multicols}{3}%
+     \parskip 1em}
+  {\end{multicols}}
+
+% Lists
+\usepackage{enumitem}
+\setlist{nosep,topsep=-1em}
+
+% Document metadata
+\title{
+  Solid server -- Selected architectural diagrams v1.3.0
+  \it (status: draft)
+}
+\author{Ruben Verborgh}
+
+\begin{document}
+
+\maketitle
+
+
+\section*{Purpose}
+This document conveys views
+on important architectural considerations for a~Solid server.
+
+It is mainly intended as a~tool for discussing,
+raising questions,
+and highlighting concerns.
+
+
+\section*{Legend}
+The architectural diagram follows standard UML notation.
+
+For more specific symbols that are not part of UML,
+Node.js/JavaScript/TypeScript conventions were used as follows:
+
+\begin{description}
+  \item[T?] represents a~value that is either not present
+            or a~value of type~T.
+  \item[Promise<T>] represents a~value that will asynchronously resolve
+                    to a~value of type~T.
+  \item[Readable<T>] represents an asynchronous one-time readable stream
+                     of values of type~T.
+  \item[Buffer] is an in-memory buffer of bytes,
+                possibly with a~character encoding.
+\end{description}
+
+
+\newcommand\ResourceStoreBody{%
+  + getRepresentation(ResourceIdentifier, RepresentationPreferences, Conditions?) : Promise<Representation>\\
+  + addResource(container : ResourceIdentifier, Representation, Conditions?) : Promise<ResourceIdentifier>\\
+  + setRepresentation(ResourceIdentifier, Representation, Conditions?) : Promise<void>\\
+  + deleteResource(ResourceIdentifier, Conditions?) : Promise<void>\\
+  + modifyResource(ResourceIdentifier, Patch, Conditions?) : Promise<void>\\
+}
+
+\section*{Overview of LDP and Access Control}
+\begin{tikzpicture}
+
+\begin{umlpackage}{HTTP}
+  \umlinterface[]{HttpHandler}{}{
+    + canHandle(HttpRequest) : Promise<boolean>\\
+    + handle(HttpRequest, HttpResponse) : void\\
+  }
+
+  \umlclass[right=1 of HttpHandler]{HttpServer}{}{
+    + HttpServer(Array<HttpHandler>)\\
+    + listen(port : int) : void\\
+    + handle(HttpRequest, HttpResponse) : void\\
+  }
+  \umluniaggreg[mult=*]{HttpServer}{HttpHandler}
+\end{umlpackage}
+
+\begin{umlpackage}[y=-4.5]{LDP}
+  \umlclass{LdpHandler}{}{
+    + LdpHandler(OperationFactory)\\
+  }
+  \umlimpl{LdpHandler}{HttpHandler}
+
+
+  \umlsimpleclass[right=2 of LdpHandler.north east,anchor=south west]{TargetExtractor}
+  \umluniaggreg[mult=1,anchor2=west]{LdpHandler}{TargetExtractor}
+
+  \umlsimpleclass[right=2 of TargetExtractor]{ResourceIdentifier}
+  \umldep[arg=creates,pos=0.5]{TargetExtractor}{ResourceIdentifier}
+
+
+  \umlsimpleclass[below=0.25 of TargetExtractor.south east,anchor=north east]{BodyParser}
+  \umluniaggreg[mult=*,anchor2=west]{LdpHandler}{BodyParser}
+
+  \umlsimpleclass[below=0.25 of ResourceIdentifier.south west,anchor=north west]{Representation}
+  \umldep[arg=creates,pos=0.5]{BodyParser}{Representation}
+
+  \umlsimpleclass[right=1 of Representation]{Patch}
+  \umlinherit{Patch}{Representation}
+
+
+  \umlsimpleclass[below=0.25 of BodyParser.south east,anchor=north east]{PreferenceParser}
+  \umluniaggreg[mult=1,anchor2=west]{LdpHandler}{PreferenceParser}
+
+  \umlsimpleclass[below=0.25 of Representation.south west,anchor=north west]{RepresentationPreferences}
+  \umldep[arg=creates,pos=0.5]{PreferenceParser}{RepresentationPreferences}
+
+
+  \umlsimpleclass[below=0.25 of PreferenceParser.south east,anchor=north east]{ResponseWriter}
+  \umluniaggreg[mult=1,anchor1=south east,anchor2=west]{LdpHandler}{ResponseWriter}
+
+  \umlsimpleclass[below=0.25 of RepresentationPreferences.south west,anchor=north west]{HttpResponse}
+  \umldep[arg=writes,pos=0.5]{ResponseWriter}{HttpResponse}
+
+
+  \begin{umlpackage}[x=6,y=-4]{Operations}
+    \umlclass[]{OperationFactory}{}{
+      + OperationFactory(ResourceStore)\\
+      + createOperation(method : string, ResourceIdentifier,\\*
+                        RepresentationPreferences, \ldots) : Operation\\
+    }
+    \umluniaggreg[mult=1,geometry=|-]{LdpHandler}{OperationFactory}
+
+    \umlinterface[below=1 of OperationFactory]{Operation}{
+      + target : ResourceIdentifier\\
+      + requestBody : Representation?\\
+      + preferences : RepresentationPreferences\\
+      + requiredPermissions : PermissionSet\\
+    }{
+      + execute() : Promise<ResponseDescription>\\
+    }
+    \umldep[arg=creates,pos=0.5]{OperationFactory}{Operation}
+
+    \umlsimpleclass[right=1 of Operation.north east,anchor=north west]{GetOperation}
+    \umlsimpleclass[below=.25 of GetOperation.south west,anchor=north west]{PostOperation}
+    \umlsimpleclass[below=.25 of PostOperation.south west,anchor=north west]{PutOperation}
+    \umlsimpleclass[below=.25 of PutOperation.south west,anchor=north west]{PatchOperation}
+    \umlimpl[anchor1=west]{GetOperation}{Operation}
+    \umlimpl[anchor1=west]{PostOperation}{Operation}
+    \umlimpl[anchor1=west]{PutOperation}{Operation}
+    \umlimpl[anchor1=west]{PatchOperation}{Operation}
+
+  \end{umlpackage}
+\end{umlpackage}
+
+\begin{umlpackage}{Storage}
+  \umlinterface[below=2.25 of Operation]{ResourceStore}{}{
+    \ResourceStoreBody
+  }
+  \umluniaggreg[mult=1]{Operation}{ResourceStore}
+\end{umlpackage}
+
+\begin{umlpackage}{Authentication}
+  \umlinterface[left=2 of LdpHandler.west]{CredentialsExtractor}{}{
+    + extractCredentials(HttpRequest) : Promise<Credentials>\\
+  }
+  \umluniaggreg[mult=1]{LdpHandler}{CredentialsExtractor}
+
+  \umlsimpleclass[below=1 of CredentialsExtractor]{Credentials}
+  \umldep[arg=creates,pos=0.5]{CredentialsExtractor}{Credentials}
+\end{umlpackage}
+
+\begin{umlpackage}{Authorization}
+  \umlinterface[below=4.5 of CredentialsExtractor]{Authorizer}{}{
+    + ensurePermissions(Credentials,
+                        ResourceIdentifier,\\*
+                        PermissionSet) : Promise<void>\\
+  }
+  \umldep[arg=uses,pos=0.3]{Authorizer}{Credentials}
+  \umluniaggreg[mult=1,geometry=|-,weight=0.6]{LdpHandler}{Authorizer}
+
+  \umlsimpleclass[below=1 of Authorizer]{AclBasedAuthorizer}
+  \umlimpl{AclBasedAuthorizer}{Authorizer}
+  \umluniaggreg[mult=1,geometry=|-]{AclBasedAuthorizer}{ResourceStore}
+\end{umlpackage}
+
+\end{tikzpicture}
+
+\clearpage
+
+\section*{Resources and Representations}
+\begin{Note}
+The intention of \component{ResourceIdentifier} and \component{Representation}
+is to capture the REST notion of a~resource and its representation.
+In~the~case of a~photograph,
+the resource is the photograph itself,
+whereas a~representation is a~concrete manifestation of that photograph
+with a~certain resolution and file~type.
+In~the~case of an RDF document,
+the~resource is the RDF graph,
+and concrete representations serialize that graph
+into Turtle or specific framings of~JSON-LD.
+\columnbreak
+
+For all practical purposes,
+\component{ResourceIdentifier} can just be a~\component{URL};
+the terminology is mainly used to emphasize
+the resource/representation notion of REST.
+Also, there is no \component{Resource} class,
+because resources are always manipulated through representations in REST,
+so we only need to \emph{identify} resources,
+and only deal with them through their representations.
+\columnbreak
+
+Crucially, as the diagram below shows,
+the \component{Representation} interface
+can have vastly different underlying in-memory structures,
+such as strings, binary streams, RDF streams, etc.
+So they can be photographs as well as RDF streams,
+and most other classes handling them do not need to care.
+This enables back-ends to be RDF-aware when they need to,
+and RDF-oblivious when they do~not.
+\end{Note}
+
+\bigskip
+
+\begin{tikzpicture}
+  \umlinterface{Representation}{
+    + identifier : ResourceIdentifier?\\
+    + metadata : RepresentationMetadata\\
+    + data : Readable<Object>\\
+    + dataType : String\\
+  }{}
+
+  \umlinterface[left=2 of Representation]{ResourceIdentifier}{
+  }{}
+  \umluniaggreg[mult=0..1]{Representation}{ResourceIdentifier}
+
+  \umlinterface[below=2 of Representation]{RepresentationMetadata}{
+  }{
+    + raw : Array<Quad>\\
+    + byteSize : int?\\
+    + contentType : String?\\
+    + encoding : String?\\
+    + language : String?\\
+    + dateTime : Date?\\
+    + profiles : Array<String>\\
+  }
+  \umluniaggreg[mult=1]{Representation}{RepresentationMetadata}
+
+  \umlclass[right=2 of Representation.north east]{BinaryRepresentation}{
+    + data : Readable<Buffer>\\
+  }{}
+  \umlimpl{BinaryRepresentation}{Representation}
+
+  \umlclass[right=2 of Representation.south east]{QuadRepresentation}{
+    + data : Readable<Quad>\\
+  }{}
+  \umlimpl{QuadRepresentation}{Representation}
+
+\end{tikzpicture}
+
+\bigskip
+
+\begin{Note}
+The \field{dataType} field returns the name of the class
+that elements of the \field{data} readable stream will have,
+for instance,
+\component{Buffer} or \component{Quad}.
+\columnbreak
+
+Based on the \field{dataType} and \field{metadata} fields,
+other components can decide whether or not the representation
+is acceptable to the user agent,
+and, if this is not the case,
+convert to a~format that is.
+For instance,
+a~\verb!text/turtle! stream is acceptable
+for a~user agent that requested \verb!text/*!,
+whereas a~\component{Readable<Quad>} will still require serialization.
+
+\columnbreak
+The \component{RepresentationMetadata} interface
+essentially exposes a~set of RDF triples
+that describe properties about the representation.
+For convenience,
+direct getters to common properties can be added,
+non-binding examples of which are shown in the diagram.
+
+\end{Note}
+
+\clearpage
+
+\section*{ResourceStore implementations}
+\begin{tikzpicture}
+  \umlinterface{ResourceStore}{}{\ResourceStoreBody}
+
+
+  % FileSystemStore
+
+  \umlclass[right=2 of ResourceStore]{FileSystemStore}{
+    - ResourceMapper mapper\\
+  }{}
+  \umlimpl{FileSystemStore}{ResourceStore}
+
+  \umlinterface[right=1 of FileSystemStore]{ResourceMapper}{}{
+    + mapFilePathToUrl(File): Promise<\{URL, RepresentationMetadata\}>\\
+    + mapUrlToFilePath(URL, RepresentationMetadata): Promise<File>\\
+  }
+  \umluniaggreg[mult=1]{FileSystemStore}{ResourceMapper}
+
+
+  % KeyValueStore
+
+  \umlabstract[above=1 of FileSystemStore.north west,anchor=south west]{KeyValueStore}{}{
+    \# get(ResourceIdentifier) : Promise<BinaryRepresentation>\\
+    \# replace(ResourceIdentifier, BinaryRepresentation) : Promise<void>\\
+    \# delete(ResourceIdentifier) : Promise<void>\\
+  }
+  \umlimpl[anchor1=west,anchor2=north east]{KeyValueStore}{ResourceStore}
+
+  \umlsimpleclass[right=1 of KeyValueStore.north east]{RedisStore}
+  \umlinherit[anchor1=west]{RedisStore}{KeyValueStore}
+
+  \umlsimpleclass[right=1 of KeyValueStore.east]{CassandraStore}
+  \umlinherit[anchor1=west]{CassandraStore}{KeyValueStore}
+
+
+  % TripleStore
+
+  \umlclass[below=1 of FileSystemStore.south west,anchor=north west]{TripleStore}{}{
+    + getRepresentation(\ldots) : Promise<QuadRepresentation>\\
+  }
+  \umlimpl[anchor1=west,anchor2=south east]{TripleStore}{ResourceStore}
+
+  \umlclass[right=1 of TripleStore]{SparqlEndpointStore}{
+    - endpoint: URL\\
+  }{}
+  \umlinherit{SparqlEndpointStore}{TripleStore}
+
+
+  % RepresentationConvertor
+
+  \umlclass[below=1 of TripleStore.south west,anchor=north]{RepresentationConvertingStore}{
+    - source : ResourceStore\\
+    - convertors : Array<RepresentationConvertor>\\
+  }{}
+  \umlimpl[anchor1=west,anchor2=-18,geometry=-|]{RepresentationConvertingStore}{ResourceStore}
+
+  \umlinterface[right=1 of RepresentationConvertingStore]{RepresentationConvertor}{}{
+    + supports(Representation, RepresentationPreferences): Promise<boolean>\\
+    + convert(Representation, RepresentationPreferences): Promise<Representation>\\
+  }
+  \umluniaggreg[mult=*]{RepresentationConvertingStore}{RepresentationConvertor}
+
+
+  % CompositeResourceStore
+
+  \umlclass[below=1 of RepresentationConvertingStore.south west,anchor=north west]{CompositeResourceStore}{
+    - sources : Map<UrlPattern, ResourceStore>\\
+  }{}
+  \umlimpl[anchor1=173,anchor2=-22,geometry=-|]{CompositeResourceStore}{ResourceStore}
+  \umlunicompo[mult=*,anchor1=190,anchor2=-28,geometry=-|]{CompositeResourceStore}{ResourceStore}
+
+\end{tikzpicture}
+
+\bigskip
+
+\begin{Note}
+A~\component{ResourceStore} will \emph{try} to satisfy
+any \component{RepresentationPreferences} passed to it,
+but only if this is reasonably easy for the store in question.
+For instance, a~SPARQL endpoint can typically
+generate N-Triples as easily as Turtle,
+so it makes sense to directly generate N-Triples
+if the client prefers this.
+On the other hand,
+a~file system will typically only have one representation on disk,
+so it is fine to always serve that single representation,
+regardless of client preferences.
+\columnbreak
+
+Optionally, a~\component{RepresentationConvertingStore} can be used
+to satisfy client preferences more accurately.
+It has access to \component{RepresentationConvertor} instances,
+which could (for instance) convert a~stream of quads
+into Turtle or a~specific JSON-LD frame.
+It can decorate any existing \component{ResourceStore}
+to extend it with more kinds of representations
+such as different content types.
+\columnbreak
+
+A~\component{CompositeResourceStore} can be used
+to have multiple back-ends on one pod,
+each answering to different URL patterns.
+This mechanism \emph{could} be used
+also to serve large files like images,
+or static assets such as apps or scripts.
+\end{Note}
+
+\section*{ResourceStore atomicity and conditional requests}
+\begin{tikzpicture}
+  \umlinterface{ResourceStore}{}{\ResourceStoreBody}
+
+  \umlclass[below=1 of ResourceStore]{Conditions}{
+    + matchesEtag : string[]\\
+    + notMatchesEtag : string[]\\
+    + modifiedSince: date?\\
+    + unmodifiedSince: date?\\
+  }{
+    + matches(metadata : RepresentationMetadata): boolean\\
+    + matches(eTag : string?, lastModified : date?): boolean\\
+  }
+  \umldep[arg=uses,pos=0.5]{ResourceStore}{Conditions}
+
+  \umlinterface[right=2 of ResourceStore.north east, anchor=south west]{AtomicResourceStore}{}{
+  }
+  \umlimpl{AtomicResourceStore}{ResourceStore}
+
+  \umlclass[right=2 of ResourceStore.east]{LockingResourceStore}{
+    - ResourceStore source\\
+    - ResourceLocker locks\\
+  }{
+  }
+  \umlimpl{LockingResourceStore}{ResourceStore}
+  \umlimpl{LockingResourceStore}{AtomicResourceStore}
+  \umlunicompo[mult=1,anchor1=202,anchor2=-6]{LockingResourceStore}{ResourceStore}
+
+  \umlinterface[right=2 of LockingResourceStore.east]{ResourceLocker}{
+  }{
+    + acquire(ResourceIdentifier) : Promise<Lock>\\
+  }
+  \umluniaggreg[mult=1]{LockingResourceStore}{ResourceLocker}
+
+  \umlinterface[below=1 of ResourceLocker.south]{Lock}{
+  }{
+    + release() : Promise<void>\\
+  }
+  \umldep[arg=creates,pos=0.5]{ResourceLocker}{Lock}
+
+\end{tikzpicture}
+
+\bigskip
+
+\begin{Note}
+The \component{ResourceStore} interface has been designed
+such that each of its methods \emph{can} be implemented
+in an atomic way:
+for each CRUD operation,
+only one dedicated method needs to be called.
+A~fifth method enables the optimization of partial updates
+with \verb!PATCH!.
+It is up to the implementer of the interface
+to (not) make an implementation atomic.
+For some implementations,
+such as triple stores or other database back-ends,
+atomicity is a~given.
+We~\emph{could} explicitly indicate atomicity
+by having such implementations
+implement the (otherwise empty) \component{AtomicResourceStore} interface
+as a~tag.
+
+\columnbreak
+
+Some back-ends are not atomic by themselves,
+such as a~file system,
+where a~read+append sequence could unknowingly
+be interrupted by a~write
+that thereby breaks atomicity.
+Instead of having to implement
+a~dedicated locking mechanism for every non-atomic back-end,
+these stores can be made atomic
+by decorating them with a~\component{LockingResourceStore}.
+This class wraps another \component{ResourceStore}
+and adds a~locking mechanism,
+of which different implementations can exist.
+
+\columnbreak
+
+It is important to emphasize
+that atomicity is \emph{not} the only reason
+for the design of the \component{ResourceStore} interface.
+Another consideration is \field{modifyResource},
+which allows us to optimize modifications in a~backend-specific way.
+Since we expect small modifications to larger resources
+to be a~common for Solid apps,
+we need to be able to handle those efficiently.
+\field{modifyResource} gives implementations the freedom
+on how to apply patches,
+such that they can pick whichever option is most efficient
+for a~given patch
+and, if desired, support atomicity.
+
+\end{Note}
+
+\begin{Note}
+The \component{Conditions} class
+represents the conditions of an HTTP conditional request.
+It~is passed to all write methods
+(and possibly also read) of \component{ResourceStore}.
+The~store is responsible for validating conditions
+at the right moment
+and, should validation fail,
+for aborting the modification by throwing an error.
+
+\columnbreak
+If the store knows how to validate conditions,
+it can use the raw exposed fields on \component{Conditions}.
+If it does not,
+it can call \field{modifyResource}
+with both ETag and the last modified date,
+or try one of them before the other.
+Finally,
+if it knows about neither ETag nor last modified date,
+it can pass the metadata as a~whole.
+
+\columnbreak
+The conditions argument is optional,
+and only passed for conditional requests.
+If a~store decides not to support conditional requests,
+it must throw an error if~conditions are passed.
+
+\end{Note}
+
+\clearpage
+
+\section*{Patch}
+\begin{Note}
+A~\component{Patch} contains a~description
+of changes to be made to a~certain
+(representation of a) resource.
+The \component{Patch} object itself
+does not know how to \emph{apply} this patch;
+it is merely a~data object.
+\columnbreak
+
+\null
+\columnbreak
+
+\null
+\end{Note}
+
+\bigskip
+
+\begin{tikzpicture}
+  \umlinterface{Patch}{}{}
+
+  \umlclass[right=2 of Patch.north east,anchor=south west]{LineBasedPatch}{
+    + deletions : Map<int, string>\\
+    + additions : Map<int, string>\\
+  }{}
+  \umlimpl[anchors=west and north east]{LineBasedPatch}{Patch}
+
+  \umlclass[below=1 of LineBasedPatch.south west,anchor=north west]{GraphPatternPatch}{
+    + where  : Array<QuadPattern>\\
+    + delete : Array<QuadPattern>\\
+    + insert : Array<QuadPattern>\\
+  }{}
+  \umlimpl[anchor2=east]{GraphPatternPatch}{Patch}
+
+  \umlclass[below=1 of GraphPatternPatch.south west,anchor=north west]{BinaryPatch}{}{}
+  \umlimpl[anchors=north west and south east]{BinaryPatch}{Patch}
+
+  \umlclass[below=1 of BinaryPatch.south west,anchor=north west]{ImageFilter}{}{}
+  \umlimpl[anchors=north west and south]{ImageFilter}{Patch}
+\end{tikzpicture}
+
+\begin{Note}
+A~\component{ResourceStore} \emph{might} have knowledge
+on how to apply certain types of patches itself.
+For instance, file-based stores
+might have built-in support for \component{LineBasedPatch},
+and SPARQL endpoints or in-memory RDF stores
+likely have built-in support for \component{GraphPatternPatch}.
+\columnbreak
+
+There is case to be made for a~\component{Patcher} interface
+for objects that can apply all patches of a~certain type
+to certain representations.
+For instance,
+a~\component{GraphPatternPatch} could be applied
+to RDF graphs serialized as documents,
+by a~\component{GraphPatternPatcher}
+that operates independently of any specific store.
+
+\columnbreak
+
+\null
+\end{Note}
+
+\clearpage
+
+\section*{Quota}
+\begin{tikzpicture}
+  \umlsimpleclass[]{AdministrationApi}{}{}
+  \umlinterface[right=2 of AdministrationApi]{HttpHandler}{}{}
+  \umlimpl{AdministrationApi}{HttpHandler}
+
+  \umlinterface[below=2 of AdministrationApi]{SizeReporter}{}{
+    + getSize(ResourceIdentifier) : Promise<Number>\\
+  }
+  \umldep[arg=uses,pos=0.5]{AdministrationApi}{SizeReporter}
+
+  \umlclass[right=2 of SizeReporter]{SizeCache}{
+    - source : ResourceStore\\
+    - reporter : SizeReporter\\
+  }{}
+  \umlimpl{SizeCache}{SizeReporter}
+  \umlunicompo[mult=1,anchor1=202,anchor2=-12]{SizeCache}{SizeReporter}
+
+  \umlinterface[below=1.5 of SizeCache]{ResourceStore}{}{}
+  \umlimpl{SizeCache}{ResourceStore}
+  \umlunicompo[mult=1,anchor1=-124,anchor2=128]{SizeCache}{ResourceStore}
+
+  \umlsimpleclass[below=2 of SizeReporter]{FileSystemStore}
+  \umlimpl{FileSystemStore}{ResourceStore}
+  \umlimpl{FileSystemStore}{SizeReporter}
+
+\end{tikzpicture}
+
+\begin{Note}
+Storage quota can be retrieved
+through the \component{AdministrationApi},
+which is an independent \component{HttpHandler}
+that accesses a~\component{SizeReporter}.
+The \component{SizeReporter} interface
+can be implemented by stores such as \component{FileSystemStore}.
+
+\columnbreak
+Since computing quota can be expensive,
+a~\component{SizeCache}
+could maintain quota for subpaths,
+which it invalidates upon write operations.
+
+\columnbreak
+\null
+
+\end{Note}
+
+\clearpage
+
+\section*{ACL caching}
+\begin{tikzpicture}
+  \umlclass{AclBasedAuthorizer}{
+    - source : AclCache\\
+  }{
+    + ensurePermissions(Credentials,
+                        ResourceIdentifier,\\*
+                        PermissionSet) : Promise<void>\\
+  }
+
+  \umlclass[right=2 of AclBasedAuthorizer]{AclCache}{
+    - source : ResourceStore\\
+  }{}
+  \umldep[arg=uses,pos=0.5]{AclBasedAuthorizer}{AclCache}
+
+  \umlinterface[below=1.5 of AclCache]{ResourceStore}{}{}
+  \umlimpl{AclCache}{ResourceStore}
+  \umlunicompo[mult=1,anchor1=-130,anchor2=128]{AclCache}{ResourceStore}
+
+\end{tikzpicture}
+
+\begin{Note}
+Since ACLs will be used frequently,
+we need a~mechanism for caching them.
+Importantly, we need a~way to \emph{invalidate} the cache
+every time a~write operation happens
+to ACLs that can affect a~given document.
+
+\columnbreak
+To this end,
+the \component{AclCache} will wrap around a~\component{ResourceStore}
+and intercept all write requests,
+such that it can invalidate parts of its cache
+when writes to ACL~documents arrive.
+
+\columnbreak
+\null
+
+\end{Note}
+
+\end{document}
