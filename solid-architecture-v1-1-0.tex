@@ -354,19 +354,19 @@ non-binding examples of which are shown in the diagram.
   \umlinherit{SparqlEndpointStore}{TripleStore}
 
 
-  % RepresentationConvertor
+  % RepresentationConverter
 
   \umlclass[below=1 of TripleStore.south west,anchor=north west]{RepresentationConvertingStore}{
     - source : ResourceStore\\
-    - convertors : Array<RepresentationConvertor>\\
+    - converters : Array<RepresentationConverter>\\
   }{}
   \umlimpl[anchor1=west,anchor2=-30,geometry=-|]{RepresentationConvertingStore}{ResourceStore}
 
-  \umlinterface[right=1 of RepresentationConvertingStore]{RepresentationConvertor}{}{
+  \umlinterface[right=1 of RepresentationConvertingStore]{RepresentationConverter}{}{
     + supports(Representation, RepresentationPreferences): Promise<boolean>\\
     + convert(Representation, RepresentationPreferences): Promise<Representation>\\
   }
-  \umluniaggreg[mult=*]{RepresentationConvertingStore}{RepresentationConvertor}
+  \umluniaggreg[mult=*]{RepresentationConvertingStore}{RepresentationConverter}
 
 
   % CompositeResourceStore
@@ -397,7 +397,7 @@ regardless of client preferences.
 
 Optionally, a~\textbf{RepresentationConvertingStore} can be used
 to satisfy client preferences more accurately.
-It has access to \textbf{RepresentationConvertor} instances,
+It has access to \textbf{RepresentationConverter} instances,
 which could (for instance) convert a~stream of quads
 into Turtle or a~specific JSON-LD frame.
 It can decorate any existing \textbf{ResourceStore}
