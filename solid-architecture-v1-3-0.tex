@@ -141,7 +141,7 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
   \begin{umlpackage}[x=7,y=-9]{Operations}
     \umlinterface[]{OperationHandler}{}{
       + canHandle(Operation) : Promise<boolean>\\
-      + handle(Operation) : Promise<void>\\
+      + handle(Operation) : Promise<ResponseDescription>\\
     }
     \umluniaggreg[anchor1=310,mult=1,geometry=|-]{AuthenticatedLdpHandler}{OperationHandler}
 
