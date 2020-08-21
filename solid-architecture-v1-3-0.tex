@@ -83,9 +83,9 @@ Node.js/JavaScript/TypeScript conventions were used as follows:
 \newcommand\ResourceStoreBody{%
   + getRepresentation(ResourceIdentifier, RepresentationPreferences, Conditions?) : Promise<Representation>\\
   + addResource(container : ResourceIdentifier, Representation, Conditions?) : Promise<ResourceIdentifier>\\
-  + setRepresentation(ResourceIdentifier, Representation, Conditions?) : Promise<void>\\
   + deleteResource(ResourceIdentifier, Conditions?) : Promise<void>\\
-  + modifyResource(ResourceIdentifier, Patch, Conditions?) : Promise<void>\\
+  + setRepresentation(ResourceIdentifier, Representation, Conditions?) : Promise<void>\\
+  + modifyRepresentation(ResourceIdentifier, Patch, Conditions?) : Promise<void>\\
 }
 
 \begin{tikzpicture}
@@ -497,12 +497,12 @@ of which different implementations can exist.
 It is important to emphasize
 that atomicity is \emph{not} the only reason
 for the design of the \component{ResourceStore} interface.
-Another consideration is \field{modifyResource},
+Another consideration is \field{modifyRepresentation},
 which allows us to optimize modifications in a~backend-specific way.
 Since we expect small modifications to larger resources
 to be a~common for Solid apps,
 we need to be able to handle those efficiently.
-\field{modifyResource} gives implementations the freedom
+\field{modifyRepresentation} gives implementations the freedom
 on how to apply patches,
 such that they can pick whichever option is most efficient
 for a~given patch
@@ -524,7 +524,7 @@ for aborting the modification by throwing an error.
 If the store knows how to validate conditions,
 it can use the raw exposed fields on \component{Conditions}.
 If it does not,
-it can call \field{modifyResource}
+it can call \field{modifyRepresentation}
 with both ETag and the last modified date,
 or try one of them before the other.
 Finally,
